@@ -19,7 +19,7 @@ metrics = [
 ]
 
 
-early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_R@1', mode='max', patience=50, restore_best_weights=True)
+early_stopping = tf.keras.callbacks.EarlyStopping(monitor='val_R@1', mode='max', patience=10, restore_best_weights=True)
 SAVE_MODEL = True
 
 models = {
@@ -33,27 +33,35 @@ models = {
 
 trained_model = None
 
-for positives in [16, 32, 4, 8]:
-    training_data = DataLoader.BatchSampler(64, positives, 'data/dl_tcrmatch_train.csv', do_embed=True, do_weight=False).get_dataset()
-    validation_data = DataLoader.BatchSampler(32, 2, 'data/dl_tcrmatch_val.csv', do_embed=True).get_dataset()
-    for margin in [0.05, 0.1, 0.3, 0.5, 1.0]:
-        model = Models.body_bi_lstm(embedding_size=10, lstm_layers=1, lstm_hidden=100, lstm_dropout=0., l2_reg=0.0000,
-                    fc_layers=[256, 128], fc_dropout=0.)
-        print(model.summary())
+for positives in [2,]:
+    training_data = DataLoader.BatchSampler(16, positives, 'data/full_train.csv',
+                                            do_embed=True, encoding='one_hot', do_weight=True).get_dataset()
+    validation_data = DataLoader.BatchSampler(16, 2, 'data/full_val.csv',
+                                              do_embed=True, encoding='one_hot').get_dataset()
+    for margin in [0.6]:
+        for latent_size in [8]:
+            # model = Models.body_bi_lstm(embedding_size=None, lstm_layers=1, lstm_hidden=50, lstm_dropout=0.0,
+            #                             l2_reg=0.0, fc_layers=[256, latent_size], fc_dropout=0.)
+            model = Models.body_cnn(amount_convs=5, size_conv=5, filters=16, sizes_fc=[256, latent_size])
 
-        loss = TripletLoss.triplet_loss(margin)
+            print(model.summary())
 
-        log_dir = f'logs_hs_large/biLSTM_{margin}_{positives}' + datetime.now().strftime('%m%d%Y_%H%M%S')
-        tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
-        model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4), metrics=metrics)
+            # loss = TripletLoss.triplet_loss(margin)
+            loss = Losses.get_contrastive_loss_tfa(margin)
 
-        history = model.fit(training_data, epochs=1000, validation_data=validation_data,
-                            steps_per_epoch=500, validation_steps=100,
-                            verbose=1, callbacks=[early_stopping, tensorboard])
+            log_dir = f'logs_hs2_large/lstm_{margin}_{positives}_{latent_size}_'
+            log_dir += datetime.now().strftime('%m%d%Y_%H%M%S')
+            tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+            model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+                          metrics=metrics)
 
-    # if SAVE_MODEL:
-    #     tf.keras.models.save_model(model, 'trained_models/test_model', save_format='h5')
-    # trained_model = model
+            history = model.fit(training_data, epochs=1, validation_data=validation_data,
+                                steps_per_epoch=500, validation_steps=100,
+                                verbose=1, callbacks=[early_stopping, tensorboard])
+            trained_model = model
+if SAVE_MODEL:
+    tf.keras.models.save_model(trained_model, 'trained_models/test_model', save_format='h5')
+
 
 
 # for batch, label in validation_data:

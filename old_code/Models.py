@@ -15,10 +15,10 @@ def general_siamese(input_shape, siamese_body, siamese_head):
     tcrs = layers.Input(shape=input_shape)
     tcr1 = layers.Lambda(lambda y: y[:, 0])(tcrs)
     tcr2 = layers.Lambda(lambda y: y[:, 1])(tcrs)
-    embedding = layers.Embedding(21, 10)
+    # embedding = layers.Embedding(21, 10, mask_zero=True)
 
-    tcr1 = embedding(tcr1)
-    tcr2 = embedding(tcr2)
+    # tcr1 = embedding(tcr1)
+    # tcr2 = embedding(tcr2)
 
     x1 = siamese_body(tcr1)
     x2 = siamese_body(tcr2)
@@ -81,29 +81,14 @@ def body_fcl():
 
 @to_sequential
 def body_cnn(amount_convs, filters, size_conv, amount_fc, size_fc, l2_reg, do_normalize=False):
-    architecture = []
+    architecture = []  # layers.Input(shape=(25, 21))]
     for _ in range(amount_convs):
         architecture.append(conv_block(filters, size_conv, 1, 'relu', use_batchnorm=False, l2_reg=l2_reg))
     architecture.append(layers.Flatten())
     for _ in range(amount_fc):
         architecture.append(dense_block(size_fc, 'relu', l2_reg=l2_reg))
     if do_normalize:
-        architecture.append(layers.LayerNormalization())
-    return architecture
-
-
-@to_sequential
-def body_lstm(hidden_layers, hidden_size, fc_layers, fc_size, dropout=0., l2_reg=0.):
-    architecture = []
-    l2 = tf.keras.regularizers.L2(l2_reg)
-    for idx in range(hidden_layers):
-        return_sequence = idx != hidden_layers-1
-        architecture.append(layers.LSTM(hidden_size, kernel_regularizer=l2, return_sequences=return_sequence))
-        architecture.append(layers.Dropout(dropout))
-    for idx in range(fc_layers):
-        architecture.append(layers.Dense(fc_size, kernel_regularizer=l2))
-        if idx != len(fc_layers)-1:
-            architecture.append(layers.Dropout(dropout))
+        architecture.append(layers.Lambda(lambda x: tf.math.l2_normalize(x, axis=-1)))
     return architecture
 
 
@@ -111,9 +96,10 @@ def body_lstm(hidden_layers, hidden_size, fc_layers, fc_size, dropout=0., l2_reg
 def body_bi_lstm():
     l2_reg = tf.keras.regularizers.L2(0.0001)
     architecture = [
-        layers.Bidirectional(layers.LSTM(500, return_sequences=True, kernel_regularizer=l2_reg)),
+        layers.Embedding(21, 20, input_shape=(25,), mask_zero=True),
+        layers.Bidirectional(layers.LSTM(100, return_sequences=True, kernel_regularizer=l2_reg)),
         # layers.Dropout(0.1),
-        layers.Bidirectional(layers.LSTM(500, kernel_regularizer=l2_reg)),
+        layers.Bidirectional(layers.LSTM(100, kernel_regularizer=l2_reg)),
         # layers.Dense(512, kernel_regularizer=l2_reg),
     ]
     return architecture
@@ -194,7 +180,6 @@ def cnn_lstm_attention(input_shape):
     return tf.keras.models.Model(inputs=tcrs, outputs=x)
 
 
-
 # Siamese Head Architectures
 
 @to_sequential
@@ -226,8 +211,8 @@ def head_fcl(final_activation='sigmoid', do_concat=False):
     architecture += [
         # layers.Lambda(lambda y: y**2),
         # dense_block(20, 'relu', use_batchnorm=False),
-        # dense_block(256, 'relu', l2_reg=0.001, dropout=0.0),
-        dense_block(1, final_activation, use_batchnorm=False, l2_reg=0.0001),
+        dense_block(256, 'relu', l2_reg=0.00, dropout=0.0),
+        dense_block(1, final_activation, use_batchnorm=False, l2_reg=0.000),
     ]
     return architecture
 
@@ -235,10 +220,12 @@ def head_fcl(final_activation='sigmoid', do_concat=False):
 # loss functions
 
 def contrastive_loss(margin):
+    @tf.function
     def loss_fct(target, distance):
         dist_sqrt = keras.sqrt(distance)
         loss_neg = keras.square(keras.maximum(0., margin - dist_sqrt))
-        loss_total = target * loss_neg + (1 - target) * distance
+        loss_total = target * loss_neg
+        loss_total += (1 - target) * distance
         loss_total = keras.mean(loss_total)
         return loss_total
 

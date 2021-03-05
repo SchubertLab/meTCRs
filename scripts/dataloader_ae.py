@@ -55,7 +55,7 @@ class LoaderAE:
 
 
 if __name__ == '__main__':
-    dl = LoaderAE('data/dl_vdj_train.csv').training_data
+    dl = LoaderAE('../data/dl_vdj_train.csv').training_data
     for batch in dl:
         print(batch)
         break

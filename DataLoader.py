@@ -8,7 +8,7 @@ from Utils import AminoAcids as Amino
 
 class BatchSampler:
     def __init__(self, batch_size, samples_per_class, path_dataset='', length_max=25, min_entries_per_group=None,
-                 do_embed=True, do_weight=False, do_one_hot=False):
+                 do_embed=True, do_weight=False, encoding='one_hot'):
         self.path_data = path_dataset
 
         self.batch_size = batch_size
@@ -16,11 +16,12 @@ class BatchSampler:
         self.min_entries_per_group = min_entries_per_group
 
         self.do_embed = do_embed
-        self.do_one_hot = do_one_hot
+        self.encoding = encoding
         self.do_weight = do_weight
 
         self.length_max = length_max
 
+        self.blosum = Amino.read_blosum()
         self.dataset = self.load_dataset(path_dataset)
 
     def load_dataset(self, path_dataset):
@@ -111,10 +112,10 @@ class BatchSampler:
             classes_neg = np.random.choice(group_list, size=half_batch, replace=False, p=weight_list)
             for cls_pos, cls_neg in zip(classes_pos, classes_neg):
                 sample_pos = random.sample(self.dataset[cls_pos], k=2)
-                yield sample_pos, np.array(1.)
+                yield sample_pos, np.array(1., dtype=np.float32)
                 sample_neg_1 = random.sample(self.dataset[cls_pos], k=1)[0]
                 sample_neg_2 = random.sample(self.dataset[cls_neg], k=1)[0]
-                yield [sample_neg_1, sample_neg_2], np.array(0.)
+                yield [sample_neg_1, sample_neg_2], np.array(0., dtype=np.float32)
 
     def embed_sequence(self, sequence):
         """
@@ -129,8 +130,10 @@ class BatchSampler:
         sequence_embedded = list(sequence_embedded)
         sequence_embedded = [Amino.letter_code_to_int(letter) for letter in sequence_embedded]
 
-        if self.do_one_hot:
+        if self.encoding == 'one_hot':
             return self.one_hot_encoding(sequence_embedded)
+        elif self.encoding == 'blosum':
+            return self.blosum_encoding(sequence_embedded)
         else:
             return np.array(sequence_embedded)
 
@@ -145,6 +148,18 @@ class BatchSampler:
             sequence_embedded[idx, code] = 1.
         return sequence_embedded
 
+    def blosum_encoding(self, sequence):
+        """
+        Encoding based on BLOSUM45 amino acid coding.
+        :param sequence: list of integers indicating the amino acid
+        :return: numpy array of shape (max_length, 21) of blosum encoding
+        """
+        sequence_embedded = np.zeros(shape=(self.length_max, 21), dtype=np.float32)
+        for idx, code in enumerate(sequence):
+            amino_letter = Amino.LETTER_CODES[code]
+            sequence_embedded[idx, :] = self.blosum[amino_letter]
+        return sequence_embedded
+
     def get_dataset(self, do_paired=False):
         """
         Creates TF dataset that can be used with e.g. keras API.
@@ -152,10 +167,9 @@ class BatchSampler:
         :return: tf.data.Dataset that can be used as a handle to the data.
         """
         if do_paired:
-            generator = self.generate_paired_sample
+            dataset = tf.data.Dataset.from_generator(self.generate_paired_sample, (tf.float32, tf.float32))
         else:
-            generator = self.generate_sample
-        dataset = tf.data.Dataset.from_generator(generator, (tf.float32, tf.int16))
+            dataset = tf.data.Dataset.from_generator(self.generate_sample, (tf.float32, tf.int16))
         dataset = dataset.batch(self.batch_size)
         return dataset
 

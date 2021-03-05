@@ -10,8 +10,8 @@ import Losses
 import MetricsTF
 
 
-training_data = DataLoader.BatchSampler(32, 2, 'data/full_train.csv', do_weight=False).get_dataset(do_paired=True)
-validation_data = DataLoader.BatchSampler(32, 2, 'data/full_val.csv').get_dataset(do_paired=True)
+training_data = DataLoader.BatchSampler(32, 2, '../data/full_train.csv', do_weight=False).get_dataset(do_paired=True)
+validation_data = DataLoader.BatchSampler(32, 2, '../data/full_val.csv').get_dataset(do_paired=True)
 
 
 loss = tf.keras.losses.BinaryCrossentropy(from_logits=True)
@@ -40,4 +40,4 @@ history = model.fit(training_data, validation_data=validation_data, epochs=1000,
                     verbose=1, callbacks=[early_stopping, tensorboard])
 
 if SAVE_MODEL:
-    tf.keras.models.save_model(model, 'trained_models/test_model_bin', save_format='h5')
+    tf.keras.models.save_model(model, '../trained_models/test_model_bin', save_format='h5')

@@ -32,8 +32,11 @@ def body_bi_lstm(embedding_size=10, lstm_layers=2, lstm_hidden=100, lstm_dropout
         architecture.append(layers.Bidirectional(layers.LSTM(lstm_hidden, return_sequences=True,
                                                              kernel_regularizer=l2_reg)))
         architecture.append(layers.Dropout(lstm_dropout))
-    architecture.append(layers.Bidirectional(layers.LSTM(lstm_hidden, return_sequences=False,
+    architecture.append(layers.Bidirectional(layers.LSTM(lstm_hidden, return_sequences=True,
                                                          kernel_regularizer=l2_reg)))
+    architecture.append(layers.Dropout(lstm_dropout))
+    # architecture.append((layers.Flatten()))
+    architecture.append(layers.GlobalMaxPool1D())
 
     for idx, hidden_units in enumerate(fc_layers):
         dropout = 0
@@ -67,7 +70,7 @@ def body_fcl(fc_layers, embedding_size=10, fc_l2=0, fc_dropout=0., use_bn=False)
 
 
 @to_sequential
-def body_cnn(embedding_size=10, amount_convs=2, filters=32, size_conv=3, amount_fc=1, size_fc=100, l2_reg=0.000):
+def body_cnn(embedding_size=None, amount_convs=2, filters=32, size_conv=3, sizes_fc=None, l2_reg=0.000):
     architecture = [layers.Input(shape=(25, 21))]
     if embedding_size is not None:
         architecture = [layers.Embedding(21, embedding_size, input_shape=(25,))]
@@ -76,9 +79,9 @@ def body_cnn(embedding_size=10, amount_convs=2, filters=32, size_conv=3, amount_
         architecture.append(conv_block(filters, size_conv, 1, 'relu', use_batchnorm=False, l2_reg=l2_reg))
     architecture.append(layers.Flatten())
 
-    for _ in range(amount_fc-1):
+    for size_fc in sizes_fc[:-1]:
         architecture.append(dense_block(size_fc, 'relu', l2_reg=l2_reg))
-    architecture.append(dense_block(size_fc, 'linear', l2_reg=l2_reg))
+    architecture.append(dense_block(sizes_fc[-1], 'linear', l2_reg=l2_reg))
     architecture.append(layers.Lambda(l2_normalize))
     return architecture
 

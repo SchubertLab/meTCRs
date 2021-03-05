@@ -52,10 +52,12 @@ def semi_hard_triplet_loss():
     return tfa.losses.TripletSemiHardLoss()
 
 
-@tf.function
-def contrastive_loss_tfa(y_actual, y_pred):
-    distance_matrix = Compute.pairwise_distance(y_pred)
-    mask = Compute.label_mask(y_actual)
-    distances = tf.reshape(distance_matrix, shape=[-1])
-    mask = tf.reshape(mask, shape=[-1])
-    return tfa.losses.contrastive_loss(mask, distances)
+def get_contrastive_loss_tfa(margin=1.0):
+    @tf.function
+    def contrastive_loss_tfa(y_actual, y_pred):
+        distance_matrix = Compute.pairwise_distance(y_pred)
+        mask = Compute.label_mask(y_actual)
+        distances = tf.reshape(distance_matrix, shape=[-1])
+        mask = tf.reshape(mask, shape=[-1])
+        return tfa.losses.contrastive_loss(mask, distances, margin=margin)
+    return contrastive_loss_tfa

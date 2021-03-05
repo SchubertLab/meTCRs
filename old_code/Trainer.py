@@ -1,16 +1,16 @@
 import tensorflow as tf
 from datetime import datetime
 
-from old_code import DataLoader
+from DataLoader2 import DataLoader
 import Models
 
 import MetricsTF
 
 
-training_data = DataLoader.get_data(128, 'train')
-validation_data = DataLoader.get_data(128, 'val')
+training_data = DataLoader(128, path_dataset='../data/dl_iedb_train.csv').get_dataset()
+validation_data = DataLoader(128, path_dataset='../data/dl_iedb_val.csv').get_dataset()
 
-input_shape = (2, 23)  # , 21)
+input_shape = (2, 25)  # , 21)
 
 
 # model = Models.perceptron_test(input_shape)
@@ -24,22 +24,28 @@ input_shape = (2, 23)  # , 21)
 
 
 loss = Models.bce_loss()
-# loss = Models.contrastive_loss(1.)
+# loss = Models.contrastive_loss(0.2)
 
 # cb_mini_val = InterEpochValidation.InterEpochValidator(3000)
 # metric_mean = CustomKeras.metric_mean
-metric_std = MetricsTF.metric_std
+# metric_std = MetricsTF.metric_std
+
+metrics = [
+    tf.keras.metrics.BinaryAccuracy(threshold=0.5)
+]
 
 early_stopping = tf.keras.callbacks.EarlyStopping(patience=5)
 
 log_dir = f'logs_tests/bilstm' + datetime.now().strftime('%m%d%Y_%H%M%S')
 tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
+
 print(log_dir)
 body = Models.body_bi_lstm()
 head = Models.head_fcl('sigmoid', do_concat=False)
 model = Models.general_siamese(input_shape, siamese_body=body, siamese_head=head)
-model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=0.00005),
-              metrics=['binary_accuracy', metric_std])
+
+model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
+              metrics=metrics)
 
 history = model.fit(training_data, epochs=100, validation_data=validation_data, verbose=1,
                     callbacks=[tensorboard, early_stopping])

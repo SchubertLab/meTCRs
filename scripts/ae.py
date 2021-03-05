@@ -5,8 +5,8 @@ from datetime import datetime
 
 import dataloader_ae as DataLoader
 
-data_train = DataLoader.LoaderAE(path_data='data/dl_vdj_train.csv', batch_size=32).training_data
-data_val = DataLoader.LoaderAE(path_data='data/dl_vdj_val.csv', batch_size=32).training_data
+data_train = DataLoader.LoaderAE(path_data='../data/dl_vdj_train.csv', batch_size=32).training_data
+data_val = DataLoader.LoaderAE(path_data='../data/dl_vdj_val.csv', batch_size=32).training_data
 
 loss = tf.keras.losses.MSE
 
@@ -76,4 +76,4 @@ model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4))
 model.fit(data_train, validation_data=data_val, epochs=100, verbose=1, callbacks=[early_stopping, tensorboard])
 
 if SAVE_MODEL:
-    tf.keras.models.save_model(encoder_model, 'trained_models/test_ae_model', save_format='h5')
+    tf.keras.models.save_model(encoder_model, '../trained_models/test_ae_model', save_format='h5')
