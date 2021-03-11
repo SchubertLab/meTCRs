@@ -1,14 +1,10 @@
 import tensorflow as tf
 from datetime import datetime
 
-import DataLoader as DataLoader
-
 import Models as Models
-import Losses
-import TripletLoss
+from MultiBatchModels import Losses, DataLoader as DataLoader
 
-import MetricsTF
-
+from evaluation import MetricsTF
 
 # Losses.contrastive_loss_tfa,
 # 'semi_hard': Losses.semi_hard_triplet_loss(),
@@ -34,9 +30,9 @@ models = {
 trained_model = None
 
 for positives in [2,]:
-    training_data = DataLoader.BatchSampler(16, positives, 'data/full_train.csv',
+    training_data = DataLoader.BatchSampler(16, positives, '../data/full_train.csv',
                                             do_embed=True, encoding='one_hot', do_weight=True).get_dataset()
-    validation_data = DataLoader.BatchSampler(16, 2, 'data/full_val.csv',
+    validation_data = DataLoader.BatchSampler(16, 2, '../data/full_val.csv',
                                               do_embed=True, encoding='one_hot').get_dataset()
     for margin in [0.6]:
         for latent_size in [8]:
@@ -60,7 +56,7 @@ for positives in [2,]:
                                 verbose=1, callbacks=[early_stopping, tensorboard])
             trained_model = model
 if SAVE_MODEL:
-    tf.keras.models.save_model(trained_model, 'trained_models/test_model', save_format='h5')
+    tf.keras.models.save_model(trained_model, '../trained_models/test_model', save_format='h5')
 
 
 

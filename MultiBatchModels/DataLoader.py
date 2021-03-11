@@ -176,7 +176,7 @@ class BatchSampler:
 
 if __name__ == '__main__':
     """ Print the first Batch for testing purposes. """
-    sampler = BatchSampler(32, 2, 'data/dl_vdj_train.csv', do_embed=True, do_weight=True)
+    sampler = BatchSampler(32, 2, '../data/dl_vdj_train.csv', do_embed=True, do_weight=True)
     dl = sampler.get_dataset(do_paired=False)
     # print(dl.dataset)
     for batch, target in dl:
