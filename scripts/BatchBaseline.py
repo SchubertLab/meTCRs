@@ -1,8 +1,8 @@
 import numpy as np
-import baseline_evaluation.Metrices as Metrics
-import DataLoader as DataLoader
-import baseline_evaluation.Evaluation as Eval
-from Utils import AminoAcids, Configurations as Config
+import evaluation.Metrices as Metrics
+from MultiBatchModels import DataLoader as DataLoader
+import evaluation.Evaluation as Eval
+from Utils import AminoAcids
 
 
 def baseline_batch_random_uniform():
