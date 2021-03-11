@@ -67,7 +67,7 @@ class DataLoader:
 
 
 if __name__ == '__main__':
-    dl = DataLoader(4, path_dataset='data/full_train.csv')
+    dl = DataLoader(4, path_dataset='../data/full_train.csv')
     for batch, target in dl.get_dataset():
         print('-----')
         for i in range(4):

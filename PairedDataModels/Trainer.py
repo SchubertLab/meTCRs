@@ -1,11 +1,8 @@
 import tensorflow as tf
 from datetime import datetime
 
-from DataLoader2 import DataLoader
+from PairedDataModels.DataLoaderPaired import DataLoader
 import Models
-
-import MetricsTF
-
 
 training_data = DataLoader(128, path_dataset='../data/dl_iedb_train.csv').get_dataset()
 validation_data = DataLoader(128, path_dataset='../data/dl_iedb_val.csv').get_dataset()
