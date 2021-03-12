@@ -2,10 +2,17 @@ import tensorflow as tf
 from datetime import datetime
 
 from PairedDataModels.DataLoaderPaired import DataLoader
-import Models
+import PairedDataModels.Models as Models
 
-training_data = DataLoader(128, path_dataset='../data/dl_iedb_train.csv').get_dataset()
-validation_data = DataLoader(128, path_dataset='../data/dl_iedb_val.csv').get_dataset()
+import Utils.Configurations as Dirs
+
+import evaluation.Evaluation as Eval
+
+DATASET_KEY = 'TcrMatch_old'
+
+
+training_data = DataLoader(128, path_dataset=Dirs.PATH_DATA_TRAIN[DATASET_KEY]).get_dataset()
+validation_data = DataLoader(128, path_dataset=Dirs.PATH_DATA_VAL[DATASET_KEY]).get_dataset()
 
 input_shape = (2, 25)  # , 21)
 
@@ -33,7 +40,7 @@ metrics = [
 
 early_stopping = tf.keras.callbacks.EarlyStopping(patience=5)
 
-log_dir = f'logs_tests/bilstm' + datetime.now().strftime('%m%d%Y_%H%M%S')
+log_dir = Dirs.PATH_LOGS + '/paired/' + datetime.now().strftime('%m%d%Y_%H%M%S')
 tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
 
 print(log_dir)
@@ -44,6 +51,9 @@ model = Models.general_siamese(input_shape, siamese_body=body, siamese_head=head
 model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
               metrics=metrics)
 
-history = model.fit(training_data, epochs=100, validation_data=validation_data, verbose=1,
+history = model.fit(training_data, epochs=1, validation_data=validation_data, verbose=1,
                     callbacks=[tensorboard, early_stopping])
 
+# tf.keras.models.save_model(model, Dirs.PATH_MODEL_PAIRED, save_format='h5')
+
+Eval.evaluate_method_on_recall(Eval.paired_classifier_wrapper, 'val', DATASET_KEY, 'paired_test', model)

@@ -53,12 +53,12 @@ class DataLoader:
         for seq_anchor, label_anchor in self.sequence_label_pairs:
             # positive pair
             seq_pos = random.choice(self.sequences_by_label[label_anchor])
-            yield [seq_anchor, seq_pos], np.array(0., dtype=np.float32)
+            yield np.stack([seq_anchor, seq_pos]), np.array(0., dtype=np.float32)
             # negative pair
             seq_neg, label_neg = random.choice(self.sequence_label_pairs)
             while label_neg == label_anchor:
                 seq_neg, label_neg = random.choice(self.sequence_label_pairs)
-            yield [seq_anchor, seq_neg],  np.array(1., dtype=np.float32)
+            yield np.stack([seq_anchor, seq_neg]),  np.array(1., dtype=np.float32)
 
     def get_dataset(self):
         dataset = tf.data.Dataset.from_generator(self.generate_dataset, (tf.float32, tf.float32))
@@ -69,6 +69,7 @@ class DataLoader:
 if __name__ == '__main__':
     dl = DataLoader(4, path_dataset='../data/full_train.csv')
     for batch, target in dl.get_dataset():
+        print(batch.shape)
         print('-----')
         for i in range(4):
             print(Amino.tensor_to_amino_acid(batch[i, 0], is_one_hot=False))

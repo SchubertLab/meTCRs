@@ -1,6 +1,6 @@
 import numpy as np
 import tensorflow as tf
-
+import os
 from tqdm import tqdm
 
 from tcrmatch_c import tcrmatch
@@ -12,48 +12,76 @@ import Utils.AminoAcids as Amino
 import evaluation.Metrices as Metrics
 
 
-def evaluate_performance(source='val'):
+def evaluate_performance(source='val', dataset='IEDB'):
     """
     Calculate the performance values of baseline and our method
     :param source: str indicating the dataset 'val' or 'test'
+    :param dataset: str key indicating which dataset to use
     :return: dict {method_name: performance_summary} containing the scores for all methods
     """
     print(source)
     methods = {
         # 'uniform_noise': uniform_noise_wrapper,
-        'tcr_match': tcr_match_wrapper,
+        # 'tcr_match': tcr_match_wrapper,
         # 'normal_noise': normal_noise_wrapper,
         # 'cdr_dist': cdr_dist_wrapper,
-        # todo: add tcr_dist + own method
-        # 'my_stuff': my_awesome_shit_wrapper,
-        # 'ae': my_awesome_shit_wrapper_ae,
+        # 'MultiBatch': multibatch_model_wrapper,
+        # 'AE': autoencoder_wrapper,
+        # 'PairedModel': paired_classifier_wrapper,
     }
     performance = {}
     for name, func in methods.items():
         print(f'---{name}---')
-        scores = evaluate_method_on_recall(func, source)
+        scores = evaluate_method_on_recall(func, source, dataset, tag=name)
         performance[name] = scores
     return performance
 
 
-def evaluate_method_on_recall(distance_method, source):
+def evaluate_method_on_recall(distance_method, source, dataset, tag, model=None):
     """
     Calculate Recall at [1, 10, 100] for a given method
     :param distance_method: function list of sequences as input and returning a pairwise distance matrix
     :param source: source of the dataset ('val', 'train')
+    :param dataset: str key indicating which dataset to use
+    :param tag: unique identifier for saving the model performance
+    :param model: trained tensorflow model
     :return: dict {k_value: score} R@k score for different ks
     """
     print('->load data')
-    sequences, labels = load_data(source)
+    sequences, labels = load_data(source, dataset)
     print(f'{len(labels)} sequences')
     print('->calculate distances')
-    distance_matrix = distance_method(sequences)
+    if model is None:
+        distance_matrix = distance_method(sequences)
+    else:
+        distance_matrix = distance_method(sequences, model)
     k_values = [1, 10, 100]
     print('->evaluate metrics')
     recall_values = Metrics.recall_at_k(distance_matrix, labels, k_values)
     for k, result in recall_values.items():
         print(f'Recall@{k}: {result}')
+    log_performance(tag, recall_values, dataset)
     return recall_values
+
+
+def log_performance(tag, scores, dataset):
+    """
+    Logs all performances to common file
+    :param tag: identifier for the model
+    :param scores: dict {k_value: score} containing the R@k values
+    :param dataset: dataset tag for creating an individual file for each set
+    :return: write output to logfile all_scores.csv
+    """
+    path_log = Config.PATH_LOGS + f'/all_scores_{dataset}.csv'
+    if not os.path.exists(path_log):
+        with open(path_log, 'w') as log_file:
+            line = ['tag'] + ['R@'+str(k) for k in scores]
+            line = ','.join(line) + '\n'
+            log_file.write(line)
+    with open(path_log, 'a+') as log_file:
+        line = [tag] + [str(score) for score in scores.values()]
+        line = ','.join(line) + '\n'
+        log_file.write(line)
 
 
 # <- Methods to calculate the distance matrix of a list of sequences by different methods ->
@@ -84,13 +112,13 @@ def cdr_dist_wrapper(sequences):
     return distance_matrix
 
 
-def my_awesome_shit_wrapper(sequences):
+def multibatch_model_wrapper(sequences):
     """
     Function calculating distance matrix based our trained model for latent space embedding.
     :param sequences: list of sequences
     :return: numpy array (num_sequences, num_sequences) containing pairwise distances
     """
-    trained_model = tf.keras.models.load_model('../trained_models/test_model', compile=False)
+    trained_model = tf.keras.models.load_model(Config.PATH_MODEL_MULTI_BATCH, compile=False)
     n = len(sequences)
     distance_matrix = np.zeros(shape=(n, n))
     embeddings = []
@@ -106,13 +134,13 @@ def my_awesome_shit_wrapper(sequences):
     return distance_matrix
 
 
-def my_awesome_shit_wrapper_ae(sequences):
+def autoencoder_wrapper(sequences):
     """
     Function calculating distance matrix based on our autoencoder model
     :param sequences: list of sequences
     :return: numpy array (num_sequences, num_sequences) containing pairwise distances
     """
-    trained_model = tf.keras.models.load_model('../trained_models/test_ae_model', compile=False)
+    trained_model = tf.keras.models.load_model(Config.PATH_MODEL_AE, compile=False)
     n = len(sequences)
     distance_matrix = np.zeros(shape=(n, n))
     embeddings = []
@@ -125,6 +153,36 @@ def my_awesome_shit_wrapper_ae(sequences):
         for j, embed_2 in enumerate(embeddings):
             distance = euclidean_distance(embed_1, embed_2)
             distance_matrix[i][j] = distance
+    return distance_matrix
+
+
+def paired_classifier_wrapper(sequences, model=None):
+    """
+    Function calculating distance matrix based on our paired data processing model
+    :param sequences: list of sequences
+    :param model: trained tensorflow model
+    :return: numpy array (num_sequences, num_sequences) containing pairwise distances
+    """
+    if model is None:
+        model = tf.keras.models.load_model(Config.PATH_MODEL_PAIRED, compile=False, custom_objects={'tf': tf})
+
+    n = len(sequences)
+    distance_matrix = np.zeros(shape=(n, n))
+
+    sequences_numeric = []
+    for seq in sequences:
+        sequences_numeric.append(embed_sequence(seq))
+    sequences_numeric = np.stack(sequences_numeric)
+
+    for i in tqdm(range(sequences_numeric.shape[0])):
+        seq_1 = sequences_numeric[i]
+        seq_1 = np.repeat(seq_1, len(sequences), axis=0)
+        seq_1 = np.expand_dims(seq_1, 1)
+
+        paired_seqs = np.concatenate([seq_1, sequences_numeric], axis=1)
+        prediction = model.predict(paired_seqs, batch_size=500)
+        prediction = prediction.flatten()
+        distance_matrix[i, :] = prediction
     return distance_matrix
 
 
@@ -186,18 +244,19 @@ def embed_sequence(sequence, do_one_hot=False):
 
 
 # <-Functions for loading a dataset in the form sequences, labels->
-def load_data(source):
+def load_data(source, dataset):
     """
     Load the data used for evaluation
     :param source: str indicating the dataset ('val' or 'test')
+    :param dataset: str key indicating which dataset to use
     :return: list of amino acid sequences, list of corresponding epitopes
     """
     if source == 'test':
-        path_data = '../data/full_test.csv'
+        path_data = Config.PATH_DATA_TEST[dataset]
     elif source == 'val':
-        path_data = '../data/full_val.csv'
+        path_data = Config.PATH_DATA_VAL[dataset]
     else:
-        path_data = Config.PATH_DATA_TRAIN
+        path_data = Config.PATH_DATA_TRAIN[dataset]
     data = Data.BatchSampler(16, 2, path_dataset=path_data, do_embed=False)
     data = data.dataset
     sequences, labels = reorder_dataset(data)
@@ -220,7 +279,7 @@ def reorder_dataset(data):
 
 
 if __name__ == '__main__':
-    evaluate_performance('val')
+    evaluate_performance('val', dataset='TcrMatch_old')
 
 # just some performances notes
 '''
@@ -282,4 +341,5 @@ Recall@100: 0.9380823564773069
 Recall@1: 0.44063721070033063
 Recall@10: 0.8322813345356177
 Recall@100: 0.9284640817553351
+
 '''

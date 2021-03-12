@@ -1,13 +1,18 @@
 import tensorflow as tf
 from datetime import datetime
 
-import Models as Models
-from MultiBatchModels import Losses, DataLoader as DataLoader
+import Utils.Configurations as Dirs
+
+import MultiBatchModels.Models as Models
+import MultiBatchModels.Losses as Losses
+import MultiBatchModels.DataLoader as DataLoader
 
 from evaluation import MetricsTF
 
 # Losses.contrastive_loss_tfa,
 # 'semi_hard': Losses.semi_hard_triplet_loss(),
+
+DATASET_KEY = 'IEDB'
 
 metrics = [
     MetricsTF.recall_at_k(1),
@@ -30,9 +35,9 @@ models = {
 trained_model = None
 
 for positives in [2,]:
-    training_data = DataLoader.BatchSampler(16, positives, '../data/full_train.csv',
+    training_data = DataLoader.BatchSampler(16, positives, Dirs.PATH_DATA_TRAIN[DATASET_KEY],
                                             do_embed=True, encoding='one_hot', do_weight=True).get_dataset()
-    validation_data = DataLoader.BatchSampler(16, 2, '../data/full_val.csv',
+    validation_data = DataLoader.BatchSampler(16, 2, Dirs.PATH_DATA_VAL[DATASET_KEY],
                                               do_embed=True, encoding='one_hot').get_dataset()
     for margin in [0.6]:
         for latent_size in [8]:
@@ -45,7 +50,7 @@ for positives in [2,]:
             # loss = TripletLoss.triplet_loss(margin)
             loss = Losses.get_contrastive_loss_tfa(margin)
 
-            log_dir = f'logs_hs2_large/lstm_{margin}_{positives}_{latent_size}_'
+            log_dir = Dirs.PATH_LOGS + f'/hs2_large/lstm_{margin}_{positives}_{latent_size}_'
             log_dir += datetime.now().strftime('%m%d%Y_%H%M%S')
             tensorboard = tf.keras.callbacks.TensorBoard(log_dir=log_dir, histogram_freq=1)
             model.compile(loss=loss, optimizer=tf.keras.optimizers.Adam(learning_rate=3e-4),
@@ -56,7 +61,7 @@ for positives in [2,]:
                                 verbose=1, callbacks=[early_stopping, tensorboard])
             trained_model = model
 if SAVE_MODEL:
-    tf.keras.models.save_model(trained_model, '../trained_models/test_model', save_format='h5')
+    tf.keras.models.save_model(trained_model, Dirs.PATH_MODEL_MULTI_BATCH, save_format='h5')
 
 
 

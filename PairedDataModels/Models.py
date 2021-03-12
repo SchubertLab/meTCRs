@@ -14,7 +14,7 @@ def perceptron_test(input_shape):
 def general_siamese(input_shape, siamese_body, siamese_head):
     tcrs = layers.Input(shape=input_shape)
     tcr1 = layers.Lambda(lambda y: y[:, 0])(tcrs)
-    tcr2 = layers.Lambda(lambda y: y[:, 1])(tcrs)
+    tcr2 = layers.Lambda(lambda y: y[:, 1])(tcrs)   #y[:, 1]
     # embedding = layers.Embedding(21, 10, mask_zero=True)
 
     # tcr1 = embedding(tcr1)
@@ -22,8 +22,9 @@ def general_siamese(input_shape, siamese_body, siamese_head):
 
     x1 = siamese_body(tcr1)
     x2 = siamese_body(tcr2)
+    x = tf.stack([x1, x2], axis=1)
 
-    x = siamese_head([x1, x2])
+    x = siamese_head(x)
     return tf.keras.models.Model(inputs=tcrs, outputs=x)
 
 
@@ -204,10 +205,10 @@ def head_cosine():
 @to_sequential
 def head_fcl(final_activation='sigmoid', do_concat=False):
     if do_concat:
-        architecture = [layers.Concatenate()]
+        architecture = [layers.Flatten()]
     else:
-        architecture = [layers.Subtract(),
-                        layers.Lambda(lambda y: keras.abs(y))]
+        architecture = [layers.Lambda(lambda y: y[:, 0, :] - y[:, 1, :]),
+                        layers.Lambda(lambda y: tf.abs(y))]
     architecture += [
         # layers.Lambda(lambda y: y**2),
         # dense_block(20, 'relu', use_batchnorm=False),
