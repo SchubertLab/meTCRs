@@ -1,0 +1,9 @@
+name: meTCRs
+channels:
+  - pytorch
+  - conda-forge
+dependencies:
+  - python=3.9
+  - pandas=1.4.*
+  - pytorch=1.11.*
+  - pytorch-lightning=1.5.*
