@@ -7,3 +7,4 @@ dependencies:
   - pandas=1.4.*
   - pytorch=1.11.*
   - pytorch-lightning=1.5.*
+  - scikit-learn

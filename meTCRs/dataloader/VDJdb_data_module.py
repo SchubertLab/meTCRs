@@ -1,8 +1,9 @@
 from typing import Optional
 
-import pandas as pd
 import torch
 from pytorch_lightning import LightningDataModule
+import pandas as pd
+from sklearn.model_selection import train_test_split
 
 from meTCRs.dataloader.dataset import TCREpitopeDataset
 
@@ -10,13 +11,13 @@ DATA_SEPARATOR = '\t'
 
 
 class VDJdbDataModule(LightningDataModule):
-    def __init__(self, data_path: str, batch_size: int):
+    def __init__(self, data_path: str, batch_size: int, classes_per_batch: int):
         super().__init__()
         self.data_path = data_path
         self.batch_size = batch_size
+        self.classes_per_batch = classes_per_batch
         self.train_set = None
         self.val_set = None
-        self.test_set = None
         self.dimension = None
 
     def setup(self, stage: Optional[str] = None) -> None:
@@ -28,33 +29,37 @@ class VDJdbDataModule(LightningDataModule):
         cdr_tokens = self._tokenize(padded_cdr)
         cdr_token_ids = self._encode(cdr_tokens)
 
-        dataset = TCREpitopeDataset(tcr_data=cdr_token_ids, epitope_data=raw_data['Epitope'])
-        self.train_set, self.val_set, self.test_set = self._split_dataset(dataset)
+        epitopes = list(raw_data['Epitope'])
+
+        tcr_train, tcr_val, epitope_train, epitope_val = train_test_split(cdr_token_ids,
+                                                                          epitopes,
+                                                                          train_size=0.8)
+
+        self.train_set = TCREpitopeDataset(tcr_data=tcr_train,
+                                           epitope_data=epitope_train,
+                                           batch_size=self.batch_size,
+                                           classes_per_batch=self.classes_per_batch,
+                                           total_batches=len(tcr_train) // self.batch_size)
+
+        self.val_set = TCREpitopeDataset(tcr_data=tcr_val,
+                                         epitope_data=epitope_val,
+                                         batch_size=self.batch_size,
+                                         classes_per_batch=self.classes_per_batch,
+                                         total_batches=len(tcr_val) // self.batch_size)
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self.train_set, batch_size=self.batch_size, drop_last=True)
-
-    # TODO Remove `drop_last` if proper sampling is used
+        return torch.utils.data.DataLoader(self.train_set,
+                                           batch_size=self.batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self.val_set, batch_size=self.batch_size, drop_last=True)
+        return torch.utils.data.DataLoader(self.val_set,
+                                           batch_size=self.batch_size)
 
     def test_dataloader(self):
-        return torch.utils.data.DataLoader(self.test_set, batch_size=self.batch_size, drop_last=True)
+        pass
 
     def predict_dataloader(self):
         pass
-
-    @staticmethod
-    def _split_dataset(dataset):
-        train_set_len = int(len(dataset) * 0.6)
-        val_set_len = int(len(dataset) * 0.2)
-        test_set_len = len(dataset) - train_set_len - val_set_len
-
-        return torch.utils.data.random_split(
-            dataset,
-            [train_set_len, val_set_len, test_set_len]
-        )
 
     @staticmethod
     def _encode(tokens):
@@ -65,15 +70,12 @@ class VDJdbDataModule(LightningDataModule):
         return token_ids
 
     @staticmethod
-    def _tokenize(padded_sequences):
-        tokens = padded_sequences.apply(lambda x: list(x))
-        return tokens
+    def _tokenize(sequences):
+        return sequences.apply(lambda x: list(x))
 
     def _pad(self, raw_data):
-        padded_sequences = raw_data['CDR3'].apply(lambda x: x.ljust(self.dimension, '-'))
-        return padded_sequences
+        return raw_data['CDR3'].apply(lambda x: x.ljust(self.dimension, '-'))
 
     @staticmethod
     def _get_dimension(raw_data):
-        dimension = max(raw_data['CDR3'].apply(lambda x: len(x)))
-        return dimension
+        return max(raw_data['CDR3'].apply(lambda x: len(x)))
