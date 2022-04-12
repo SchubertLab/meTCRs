@@ -5,3 +5,4 @@ results/
 figures/
 scripts/
 notebooks/
+/experiments/lightning_logs/

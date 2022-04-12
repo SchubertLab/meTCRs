@@ -12,8 +12,10 @@ class Mlp(LightningModule):
 
         self.model = nn.Sequential(
             nn.Linear(number_inputs, number_hidden),
+            nn.BatchNorm1d(number_hidden),
             nn.ReLU(),
             nn.Linear(number_hidden, number_hidden),
+            nn.BatchNorm1d(number_hidden),
             nn.ReLU(),
             nn.Linear(number_hidden, number_outputs)
         )
@@ -27,12 +29,16 @@ class Mlp(LightningModule):
         return self.model(x.type(float32))
 
     def training_step(self, batch, batch_index):
+        return self._perform_step(batch)
+
+    def validation_step(self, batch, batch_index):
+        loss = self._perform_step(batch)
+        self.log('val_loss', loss)
+
+    def _perform_step(self, batch):
         input_sequence, labels = batch
-
         embeddings = self.model(input_sequence.type(float32))
-
         anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
-
         return self.loss(anchor1, positive, anchor2, negative)
 
 
