@@ -1,8 +1,9 @@
 from pytorch_lightning import LightningModule
-from torch import nn
+from torch import nn, float32
 from torch.optim import Adam
 
-from meTCRs.models.utils.losses import contrastive_loss
+from meTCRs.dataloader.utils.pair_maker import pair_maker
+from meTCRs.models.utils.losses import ContrastiveLoss
 
 
 class Mlp(LightningModule):
@@ -17,25 +18,21 @@ class Mlp(LightningModule):
             nn.Linear(number_hidden, number_outputs)
         )
 
+        self.loss = ContrastiveLoss()
+
     def configure_optimizers(self):
         return Adam(self.parameters())
 
     def forward(self, x):
-        return self.model(x)
+        return self.model(x.type(float32))
 
     def training_step(self, batch, batch_index):
         input_sequence, labels = batch
 
-        batch_size, _ = input_sequence.shape
+        embeddings = self.model(input_sequence.type(float32))
 
-        assert(batch_size % 2 == 0)
+        anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
 
-        embeddings_1 = self.model(input_sequence[:batch_size//2].float())
-        embeddings_2 = self.model(input_sequence[batch_size//2:].float())
-
-        labels_1 = labels[:batch_size//2]
-        labels_2 = labels[batch_size//2:]
-
-        return contrastive_loss((embeddings_1, embeddings_2), (labels_1, labels_2))
+        return self.loss(anchor1, positive, anchor2, negative)
 
 
