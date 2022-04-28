@@ -8,3 +8,4 @@ dependencies:
   - pytorch=1.11.*
   - pytorch-lightning=1.5.*
   - scikit-learn
+  - matplotlib

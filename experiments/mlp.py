@@ -1,7 +1,11 @@
+import os
+
 from pytorch_lightning import Trainer
 
-from meTCRs.models.architectures.mlp import Mlp
+from meTCRs.models.embeddings.mlp import Mlp
 from meTCRs.dataloader.VDJdb_data_module import VDJdbDataModule
+
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'True'
 
 
 def main():
@@ -16,4 +20,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-

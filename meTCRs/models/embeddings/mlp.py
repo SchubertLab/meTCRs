@@ -3,7 +3,7 @@ from torch import nn, float32
 from torch.optim import Adam
 
 from meTCRs.dataloader.utils.pair_maker import pair_maker
-from meTCRs.models.utils.losses import ContrastiveLoss
+from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
 
 class Mlp(LightningModule):
