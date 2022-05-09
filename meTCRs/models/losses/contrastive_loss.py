@@ -1,21 +1,15 @@
 import torch
 from torch.nn import ReLU, Module
 
-from meTCRs.models.distances.euclidean import Euclidean
-
 
 class ContrastiveLoss(Module):
-    def __init__(self, alpha=0.1, reduction='mean', distance='l2'):
+    def __init__(self, distance, alpha=0.1, reduction='mean'):
         super(ContrastiveLoss, self).__init__()
 
+        self.distance = distance
         self.alpha = alpha
         self.reduction = reduction
         self.relu = ReLU()
-
-        if distance == 'l2':
-            self.distance = Euclidean()
-        else:
-            raise NotImplementedError('Distance {} not implemented.'.format(distance))
 
     def forward(self, anchor1: torch.Tensor, positive: torch.Tensor, anchor2: torch.Tensor, negative: torch.Tensor):
         positive_loss = self.distance(anchor1, positive)

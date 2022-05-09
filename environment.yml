@@ -9,3 +9,4 @@ dependencies:
   - pytorch-lightning=1.5.*
   - scikit-learn
   - matplotlib
+  - optuna

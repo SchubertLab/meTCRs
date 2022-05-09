@@ -3,12 +3,16 @@ from torch import nn, float32
 from torch.optim import Adam
 
 from meTCRs.dataloader.utils.pair_maker import pair_maker
-from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
 
 class Mlp(LightningModule):
-    def __init__(self, number_inputs, number_outputs, number_hidden):
+    def __init__(self, loss, number_inputs, number_outputs, number_hidden, optimizer_params=None):
         super().__init__()
+
+        if optimizer_params is None:
+            self._optimizer_params = {}
+        else:
+            self._optimizer_params = optimizer_params
 
         self.model = nn.Sequential(
             nn.Linear(number_inputs, number_hidden),
@@ -20,10 +24,10 @@ class Mlp(LightningModule):
             nn.Linear(number_hidden, number_outputs)
         )
 
-        self.loss = ContrastiveLoss()
+        self.loss = loss
 
     def configure_optimizers(self):
-        return Adam(self.parameters())
+        return Adam(self.parameters(), **self._optimizer_params)
 
     def forward(self, x):
         return self.model(x.type(float32))
