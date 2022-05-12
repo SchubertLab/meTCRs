@@ -1,22 +1,26 @@
-from itertools import combinations
+from itertools import product
 
 from sklearn.metrics import roc_auc_score, roc_curve
-from torch import Tensor
+from tqdm import tqdm
+import torch
+
+from meTCRs.utils import function_timer
 
 
-def pairwise_distance_evaluation(embedding, distance, data):
+@function_timer
+def pairwise_distance_evaluation(embedding, distance, data, calculate_curve=False):
     sequences, epitopes = data
-    embedded_sequences = embedding(sequences)
-    pairs = []
-    distances = []
+    embedded_sequences = embedding(torch.Tensor(sequences))
 
-    for i, j in combinations(range(len(data)), 2):
-        pairs.append(0 if epitopes[i] == epitopes[j] else 1)
-        distances.append(distance(embedded_sequences[i], embedded_sequences[j]))
+    # TODO Find better solution for pair building. This is due to the necessary transformations of the distance matrix.
+    pairs = [0 if epitopes[i] == epitopes[j] else 1 for i, j in product(range(len(epitopes)), repeat=2)]
 
-    print(pairs, distances)
+    # TODO Find solution for generic distances
+    distances = torch.cdist(embedded_sequences, embedded_sequences).detach().numpy().flatten(order='F')
 
-    score = roc_auc_score(y_true=pairs, y_score=distances)
-    tpr, fpr, thresholds = roc_curve(y_true=pairs, y_score=distances)
+    results = {'score': roc_auc_score(y_true=pairs, y_score=distances)}
 
-    return score, tpr, fpr, thresholds
+    if calculate_curve:
+        results['tpr'], results['fpr'], results['thresholds'] = roc_curve(y_true=pairs, y_score=distances)
+
+    return results

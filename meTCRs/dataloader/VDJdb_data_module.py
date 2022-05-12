@@ -83,3 +83,7 @@ class VDJdbDataModule(LightningDataModule):
     @property
     def dimension(self):
         return self._dimension
+
+    @property
+    def val_data(self):
+        return self._val_set.tcr_data, self._val_set.epitope_data

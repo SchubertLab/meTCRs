@@ -5,6 +5,7 @@ from pytorch_lightning import Trainer
 
 sys.path.insert(0, os.pardir)
 
+from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.dataloader.VDJdb_data_module import VDJdbDataModule
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.mlp import Mlp
@@ -28,8 +29,9 @@ def run(data_path: str,
 
     trainer.fit(model, datamodule=data)
 
-    # TODO Implement proper evaluation of trained model
-    return 1.
+    score, _, _, _ = pairwise_distance_evaluation(model, distance, data.val_data)
+
+    return score
 
 
 def setup_data(data_params, data_path):
