@@ -1,8 +1,9 @@
 from typing import Optional
 
 import torch
-from pytorch_lightning import LightningDataModule
 import pandas as pd
+import numpy as np
+from pytorch_lightning import LightningDataModule
 from sklearn.model_selection import train_test_split
 
 from meTCRs.dataloader.dataset import TCREpitopeDataset
@@ -20,8 +21,10 @@ class VDJdbDataModule(LightningDataModule):
         self._val_set = None
         self._dimension = None
 
-    def setup(self, stage: Optional[str] = None) -> None:
-        raw_data = pd.read_csv(self._data_path, sep=DATA_SEPARATOR)
+    def setup(self, stage: Optional[str] = None, debug=False) -> None:
+        skip_rows = (lambda i: i > 0 and np.random.choice([True, False], p=[0.99, 0.01])) if debug else None
+
+        raw_data = pd.read_csv(self._data_path, sep=DATA_SEPARATOR, skiprows=skip_rows)
 
         self._dimension = self._get_dimension(raw_data)
 

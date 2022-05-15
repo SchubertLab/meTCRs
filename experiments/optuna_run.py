@@ -1,9 +1,15 @@
-import sys
 import yaml
+import argparse
 
 import optuna
 
 from run import run
+
+
+parser = argparse.ArgumentParser(description='Run experiments with Optuna hyperparameter optimization')
+parser.add_argument('configuration_file', type=str)
+parser.add_argument('--n_trials', type=int)
+parser.add_argument('--debug', action='store_true')
 
 
 def suggest_params(trial: optuna.trial.BaseTrial, sample_spaces: dict):
@@ -22,10 +28,10 @@ def suggest_params(trial: optuna.trial.BaseTrial, sample_spaces: dict):
     return params
 
 
-def objective(trial, config_dict: dict):
+def objective(trial, config_dict: dict, debug: bool):
     run_params = get_run_params_from_config(config_dict, trial)
 
-    return run(**run_params)
+    return run(**run_params, debug=debug)
 
 
 def get_run_params_from_config(config_dict, trial):
@@ -47,13 +53,15 @@ def get_run_params_from_config(config_dict, trial):
     return run_params
 
 
-def run_study(config_dict, n_trials=10):
+def run_study(config_dict, n_trials, debug):
     study = optuna.create_study(direction='maximize')
-    study.optimize(lambda trial: objective(trial, config_dict), n_trials=n_trials)
+    study.optimize(lambda trial: objective(trial, config_dict, debug), n_trials=n_trials)
 
 
 if __name__ == '__main__':
-    with open(sys.argv[1], 'r') as f:
+    args = parser.parse_args()
+
+    with open(args.configuration_file, 'r') as f:
         config = yaml.safe_load(f)
 
-    run_study(config)
+    run_study(config, n_trials=args.n_trials, debug=args.debug)

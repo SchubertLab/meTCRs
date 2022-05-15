@@ -20,8 +20,9 @@ def run(data_path: str,
         model_type: str,
         model_params: dict,
         optimizer_params: dict,
-        trainer_params: dict):
-    data = setup_data(data_params, data_path)
+        trainer_params: dict,
+        debug: bool):
+    data = setup_data(data_params, data_path, debug)
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
     model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
@@ -29,14 +30,14 @@ def run(data_path: str,
 
     trainer.fit(model, datamodule=data)
 
-    score, _, _, _ = pairwise_distance_evaluation(model, distance, data.val_data)
+    evaluation_results = pairwise_distance_evaluation(model, distance, data.val_data)
 
-    return score
+    return evaluation_results['score']
 
 
-def setup_data(data_params, data_path):
+def setup_data(data_params, data_path, debug):
     data = VDJdbDataModule(data_path, **data_params)
-    data.setup()
+    data.setup(debug=debug)
     return data
 
 
