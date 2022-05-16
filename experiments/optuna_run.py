@@ -1,5 +1,6 @@
 import yaml
 import argparse
+import os
 
 import optuna
 
@@ -30,8 +31,9 @@ def suggest_params(trial: optuna.trial.BaseTrial, sample_spaces: dict):
 
 def objective(trial, config_dict: dict, debug: bool):
     run_params = get_run_params_from_config(config_dict, trial)
+    save_path = os.path.join(os.path.dirname(__file__), 'optuna_runs', config_dict['name'], 'trial_{}'.format(trial.number))
 
-    return run(**run_params, debug=debug)
+    return run(**run_params, save_path=save_path, debug=debug)
 
 
 def get_run_params_from_config(config_dict, trial):
@@ -54,7 +56,11 @@ def get_run_params_from_config(config_dict, trial):
 
 
 def run_study(config_dict, n_trials, debug):
-    study = optuna.create_study(direction='maximize')
+    storage = 'sqlite:///optuna_runs/{}.db'.format(config['name'])
+    study = optuna.create_study(storage=storage,
+                                study_name=config_dict['name'],
+                                direction='maximize',
+                                load_if_exists=True)
     study.optimize(lambda trial: objective(trial, config_dict, debug), n_trials=n_trials)
 
 

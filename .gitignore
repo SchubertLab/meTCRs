@@ -6,3 +6,4 @@ figures/
 scripts/
 notebooks/
 /experiments/lightning_logs/
+/experiments/optuna_runs/

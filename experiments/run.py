@@ -12,7 +12,8 @@ from meTCRs.models.embeddings.mlp import Mlp
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
 
-def run(data_path: str,
+def run(save_path: str,
+        data_path: str,
         data_params: dict,
         dist_type: str,
         loss_type: str,
@@ -26,7 +27,7 @@ def run(data_path: str,
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
     model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
-    trainer = Trainer(**trainer_params)
+    trainer = Trainer(**trainer_params, default_root_dir=save_path)
 
     trainer.fit(model, datamodule=data)
 
