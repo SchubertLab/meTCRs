@@ -8,6 +8,7 @@ from meTCRs.dataloader.utils.pair_maker import pair_maker
 class Mlp(LightningModule):
     def __init__(self, loss, number_inputs, number_outputs, number_hidden, optimizer_params=None):
         super().__init__()
+        self.save_hyperparameters()
 
         if optimizer_params is None:
             self._optimizer_params = {}
@@ -33,7 +34,9 @@ class Mlp(LightningModule):
         return self.model(x.type(float32))
 
     def training_step(self, batch, batch_index):
-        return self._perform_step(batch)
+        loss = self._perform_step(batch)
+        self.log('train_loss', loss)
+        return loss
 
     def validation_step(self, batch, batch_index):
         loss = self._perform_step(batch)
