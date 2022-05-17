@@ -46,6 +46,7 @@ def get_run_params_from_config(config_dict, trial):
     run_params['dist_type'] = fixed_params['dist_type']
     run_params['loss_type'] = fixed_params['loss_type']
     run_params['model_type'] = fixed_params['model_type']
+    run_params['early_stopping'] = fixed_params['early_stopping']
 
     for params_class in ['data_params', 'loss_params', 'model_params', 'optimizer_params', 'trainer_params']:
         run_params[params_class] = fixed_params[params_class].copy() if params_class in fixed_params else {}
