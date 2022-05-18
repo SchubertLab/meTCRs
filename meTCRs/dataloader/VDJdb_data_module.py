@@ -21,7 +21,7 @@ class VDJdbDataModule(LightningDataModule):
         self._val_set = None
         self._dimension = None
 
-    def setup(self, stage: Optional[str] = None, debug=False) -> None:
+    def setup(self, stage: Optional[str] = None, debug=False, seed=1) -> None:
         skip_rows = (lambda i: i > 0 and np.random.choice([True, False], p=[0.99, 0.01])) if debug else None
 
         raw_data = pd.read_csv(self._data_path, sep=DATA_SEPARATOR, skiprows=skip_rows)
@@ -36,6 +36,7 @@ class VDJdbDataModule(LightningDataModule):
 
         tcr_train, tcr_val, epitope_train, epitope_val = train_test_split(cdr_token_ids,
                                                                           epitopes,
+                                                                          random_state=seed,
                                                                           train_size=0.8)
 
         self._train_set = TCREpitopeDataset(tcr_data=tcr_train,
@@ -90,3 +91,4 @@ class VDJdbDataModule(LightningDataModule):
     @property
     def val_data(self):
         return self._val_set.tcr_data, self._val_set.epitope_data
+

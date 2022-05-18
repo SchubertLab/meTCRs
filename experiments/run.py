@@ -1,6 +1,8 @@
 import os
 import sys
 
+import torch
+import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
@@ -13,6 +15,11 @@ from meTCRs.models.embeddings.mlp import Mlp
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
 
+def set_seed(seed):
+    torch.manual_seed(seed)
+    np.random.seed(seed)
+
+
 def run(save_path: str,
         data_path: str,
         data_params: dict,
@@ -23,9 +30,12 @@ def run(save_path: str,
         model_params: dict,
         optimizer_params: dict,
         trainer_params: dict,
+        seed: int,
         early_stopping: bool,
         debug: bool):
-    data = setup_data(data_params, data_path, debug)
+    set_seed(seed)
+
+    data = setup_data(data_params, data_path, debug, seed)
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
     model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
@@ -49,9 +59,9 @@ def get_trainer(save_path: str, trainer_params: dict, early_stopping: bool):
     return trainer
 
 
-def setup_data(data_params: dict, data_path: str, debug: bool):
+def setup_data(data_params: dict, data_path: str, debug: bool, seed: int):
     data = VDJdbDataModule(data_path, **data_params)
-    data.setup(debug=debug)
+    data.setup(debug=debug, seed=seed)
     return data
 
 
