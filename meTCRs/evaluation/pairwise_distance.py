@@ -1,22 +1,21 @@
 from itertools import product
 
-from sklearn.metrics import roc_auc_score, roc_curve
-from tqdm import tqdm
 import torch
+from sklearn.metrics import roc_auc_score, roc_curve
 
 from meTCRs.utils import function_timer
 
 
 @function_timer
-def pairwise_distance_evaluation(embedding, distance, data, calculate_curve=False):
+def pairwise_distance_evaluation(embedding, dist_type, data, calculate_curve=False):
     sequences, epitopes = data
-    embedded_sequences = embedding(torch.Tensor(sequences))
+    embedded_sequences = embedding(sequences)
 
-    # TODO Find better solution for pair building. This is due to the necessary transformations of the distance matrix.
-    pairs = [0 if epitopes[i] == epitopes[j] else 1 for i, j in product(range(len(epitopes)), repeat=2)]
-
-    # TODO Find solution for generic distances
-    distances = torch.cdist(embedded_sequences, embedded_sequences).detach().numpy().flatten(order='F')
+    if dist_type == 'l2':
+        pairs = [0 if epitopes[i] == epitopes[j] else 1 for i, j in product(range(len(epitopes)), repeat=2)]
+        distances = torch.cdist(embedded_sequences, embedded_sequences).detach().numpy().flatten(order='F')
+    else:
+        raise NotImplementedError('Pairwise distance evaluation not implemented for dist_type {}'.format(dist_type))
 
     results = {'score': roc_auc_score(y_true=pairs, y_score=distances)}
 

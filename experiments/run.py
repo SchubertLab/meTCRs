@@ -43,7 +43,7 @@ def run(save_path: str,
 
     trainer.fit(model, datamodule=data)
 
-    evaluation_results = pairwise_distance_evaluation(model, distance, data.val_data)
+    evaluation_results = pairwise_distance_evaluation(model, dist_type, data.val_data)
 
     return evaluation_results['score']
 

@@ -1,6 +1,7 @@
 from typing import Optional
 
 import torch
+from torch.nn.functional import one_hot
 import pandas as pd
 import numpy as np
 from pytorch_lightning import LightningDataModule
@@ -9,14 +10,16 @@ from sklearn.model_selection import train_test_split
 from meTCRs.dataloader.dataset import TCREpitopeDataset
 
 DATA_SEPARATOR = '\t'
+CDR_SEQUENCE_KEY = 'CDR3'
 
 
 class VDJdbDataModule(LightningDataModule):
-    def __init__(self, data_path: str, batch_size: int):
+    def __init__(self, data_path: str, batch_size: int, encoding: str):
         super().__init__()
         self._data_path = data_path
         self._batch_size = batch_size
         self._classes_per_batch = batch_size // 2
+        self._encoding = encoding
         self._train_set = None
         self._val_set = None
         self._dimension = None
@@ -26,15 +29,13 @@ class VDJdbDataModule(LightningDataModule):
 
         raw_data = pd.read_csv(self._data_path, sep=DATA_SEPARATOR, skiprows=skip_rows)
 
-        self._dimension = self._get_dimension(raw_data)
+        processed_cdr_sequences = self._process_cdr_sequences(raw_data)
 
-        padded_cdr = self._pad(raw_data)
-        cdr_tokens = self._tokenize(padded_cdr)
-        cdr_token_ids = self._encode(cdr_tokens)
+        self._dimension = processed_cdr_sequences.shape[1]
 
         epitopes = list(raw_data['Epitope'])
 
-        tcr_train, tcr_val, epitope_train, epitope_val = train_test_split(cdr_token_ids,
+        tcr_train, tcr_val, epitope_train, epitope_val = train_test_split(processed_cdr_sequences,
                                                                           epitopes,
                                                                           random_state=seed,
                                                                           train_size=0.8)
@@ -51,6 +52,14 @@ class VDJdbDataModule(LightningDataModule):
                                           classes_per_batch=self._classes_per_batch,
                                           total_batches=len(tcr_val) // self._batch_size)
 
+    def _process_cdr_sequences(self, raw_data):
+        size = self._get_size(raw_data[CDR_SEQUENCE_KEY])
+        trimmed = self._trim(raw_data[CDR_SEQUENCE_KEY])
+        padded = self._pad(trimmed, size)
+        tokenized = self._tokenize(padded)
+        encoded = self._encode(tokenized)
+        return encoded
+
     def train_dataloader(self):
         return torch.utils.data.DataLoader(self._train_set,
                                            batch_size=self._batch_size)
@@ -65,24 +74,33 @@ class VDJdbDataModule(LightningDataModule):
     def predict_dataloader(self):
         pass
 
-    @staticmethod
-    def _encode(tokens):
+    def _encode(self, tokens):
         unique_tokens = sorted(set([t for element in tokens for t in element]))
         token_to_id = {t: id_ for id_, t in enumerate(unique_tokens)}
-        token_ids = [[token_to_id[t] for t in token] for token in tokens]
+        token_ids = torch.tensor([[token_to_id[t] for t in token] for token in tokens])
 
-        return token_ids
+        if self._encoding == 'ordinal':
+            return token_ids
+        elif self._encoding == 'one_hot':
+            return one_hot(token_ids).flatten(1)
+        else:
+            raise NotImplementedError('Encoding of type {} is not defined.'.format(self._encoding))
 
     @staticmethod
     def _tokenize(sequences):
         return sequences.apply(lambda x: list(x))
 
-    def _pad(self, raw_data):
-        return raw_data['CDR3'].apply(lambda x: x.ljust(self._dimension, '-'))
+    @staticmethod
+    def _pad(input_data, size):
+        return input_data.apply(lambda x: x.ljust(size, '-'))
 
     @staticmethod
-    def _get_dimension(raw_data):
-        return max(raw_data['CDR3'].apply(lambda x: len(x)))
+    def _trim(input_data):
+        return input_data.apply(lambda x: x[1:-1])
+
+    @staticmethod
+    def _get_size(input_data):
+        return max(input_data.apply(lambda x: len(x)))
 
     @property
     def dimension(self):
