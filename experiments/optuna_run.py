@@ -1,8 +1,11 @@
+import sys
+import os
 import yaml
 import argparse
-import os
 
 import optuna
+
+sys.path.append(os.path.join(sys.path[0], '..'))
 
 from run import run
 
@@ -42,7 +45,7 @@ def get_run_params_from_config(config_dict, trial):
     fixed_params = config_dict['fixed_params']
     optimizable_params = config_dict['optimizable_params']
 
-    run_params['data_path'] = fixed_params['data_path']
+    run_params['data_file'] = fixed_params['data_file']
     run_params['dist_type'] = fixed_params['dist_type']
     run_params['loss_type'] = fixed_params['loss_type']
     run_params['model_type'] = fixed_params['model_type']
@@ -58,7 +61,7 @@ def get_run_params_from_config(config_dict, trial):
 
 
 def run_study(config_dict, n_trials, debug):
-    storage = 'sqlite:///optuna_runs/{}.db'.format(config['name'])
+    storage = 'sqlite:///{}/optuna_runs/{}.db'.format(sys.path[0], config['name'])
     study = optuna.create_study(storage=storage,
                                 study_name=config_dict['name'],
                                 direction='maximize',
