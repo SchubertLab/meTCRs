@@ -3,6 +3,7 @@ import os.path
 import torch
 import numpy as np
 from pytorch_lightning import Trainer
+from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
@@ -27,8 +28,8 @@ def run(save_path: str,
         model_params: dict,
         optimizer_params: dict,
         trainer_params: dict,
+        early_stopping_params: dict,
         seed: int,
-        early_stopping: bool,
         debug: bool):
     set_seed(seed)
 
@@ -36,7 +37,7 @@ def run(save_path: str,
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
     model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
-    trainer = get_trainer(save_path, trainer_params, early_stopping)
+    trainer = get_trainer(save_path, trainer_params, early_stopping_params)
 
     trainer.fit(model, datamodule=data)
 
@@ -45,13 +46,12 @@ def run(save_path: str,
     return evaluation_results['score']
 
 
-def get_trainer(save_path: str, trainer_params: dict, early_stopping: bool):
-    if early_stopping:
-        trainer = Trainer(**trainer_params,
-                          default_root_dir=save_path,
-                          callbacks=[EarlyStopping(monitor='val_loss', mode='min')])
-    else:
-        trainer = Trainer(**trainer_params, default_root_dir=save_path)
+def get_trainer(save_path: str, trainer_params: dict, early_stopping_params: dict):
+    early_stopping = EarlyStopping(monitor="val_loss", mode="min", **early_stopping_params)
+    model_checkpoint = ModelCheckpoint(monitor="val_loss", mode="min", save_top_k=1, every_n_epochs=1)
+    trainer = Trainer(**trainer_params,
+                      default_root_dir=save_path,
+                      callbacks=[early_stopping, model_checkpoint])
 
     return trainer
 
