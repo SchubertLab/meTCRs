@@ -17,11 +17,11 @@ class Mlp(LightningModule):
 
         self.model = nn.Sequential(
             nn.Linear(number_inputs, number_hidden),
-            nn.BatchNorm1d(number_hidden),
             nn.ReLU(),
+            nn.BatchNorm1d(number_hidden),
             nn.Linear(number_hidden, number_hidden),
-            nn.BatchNorm1d(number_hidden),
             nn.ReLU(),
+            nn.BatchNorm1d(number_hidden),
             nn.Linear(number_hidden, number_outputs)
         )
 
