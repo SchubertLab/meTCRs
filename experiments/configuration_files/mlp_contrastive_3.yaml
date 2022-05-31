@@ -9,7 +9,7 @@ fixed_params:
   loss_params:
     reduction: "mean"
   trainer_params:
-    accelerator: "cpu"
+    accelerator: "gpu"
     devices: 1
     strategy: "ddp"
     check_val_every_n_epoch: 3
