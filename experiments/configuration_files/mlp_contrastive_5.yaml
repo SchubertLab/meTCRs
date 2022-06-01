@@ -1,0 +1,49 @@
+# Tested with 91bc1fd325ddc640a8e95aabbbaa75dce7114774
+name: "mlp_contrastive_4"
+fixed_params:
+  data_file: "VDJdb-2022-02-25 12_58_09.77.tsv"
+  dist_type: "l2"
+  data_params:
+    encoding: "one_hot"
+    class_sampling_method: "linear"
+  loss_type: "contrastive"
+  loss_params:
+    reduction: "mean"
+  trainer_params:
+    accelerator: "gpu"
+    devices: 1
+    strategy: "ddp"
+    check_val_every_n_epoch: 3
+  early_stopping_params:
+    patience: 5
+  model_type: "mlp"
+  seed: 42
+optimizable_params:
+  loss_params:
+    alpha:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 1.
+        log: true
+  model_params:
+    number_outputs:
+      type: "categorical"
+      sample_space:
+        choices: [4,8,16,32,64,128,256,512,1024,2048]
+    number_hidden:
+      type: "categorical"
+      sample_space:
+        choices: [4,8,16,32,64,128,256,512,1024,2048]
+  optimizer_params:
+    lr:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 0.1
+        log: true
+  data_params:
+    batch_size:
+      type: "categorical"
+      sample_space:
+        choices: [ 4,8,16,32,64 ]
