@@ -116,7 +116,7 @@ class VDJdbDataModule(LightningDataModule):
     @staticmethod
     def _train_val_split(data: pd.DataFrame, train_fraction: float, random_state: int):
         train_set = data.sample(frac=train_fraction, random_state=random_state)
-        complement_mask = ~data.index.isin(train_set)
+        complement_mask = ~data.index.isin(train_set.index)
         val_set = data[complement_mask]
 
         return train_set, val_set
