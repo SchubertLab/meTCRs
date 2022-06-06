@@ -9,7 +9,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from meTCRs.models.embeddings.mlp import Mlp
-from meTCRs.dataloader.VDJdb_data_module import VDJdbDataModule
+from meTCRs.dataloader.data_module import DataModule
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
@@ -28,7 +28,7 @@ parser.add_argument("--out", type=str)
 
 def load_data(args):
     data_path = os.path.join(os.path.dirname(__file__), '..', 'data', args.data)
-    data_module = VDJdbDataModule(data_path, batch_size=args.batch_size, encoding=args.encoding)
+    data_module = DataModule(data_path, batch_size=args.batch_size, encoding=args.encoding)
     data_module.setup(debug=args.debug, seed=args.seed)
     return data_module
 

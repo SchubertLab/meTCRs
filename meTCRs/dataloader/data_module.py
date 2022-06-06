@@ -1,22 +1,24 @@
 from typing import Optional
 
-import torch
-from torch.nn.functional import one_hot
 import pandas as pd
-import numpy as np
+import torch
 from pytorch_lightning import LightningDataModule
+from torch.nn.functional import one_hot
 
+from meTCRs.dataloader.IEDB_processor import prepare_iedb
+from meTCRs.dataloader.VDJdb_processor import prepare_vdjdb
 from meTCRs.dataloader.dataset import TCREpitopeDataset
+from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION
 
 DATA_SEPARATOR = '\t'
-CDR_SEQUENCE_KEY = 'CDR3'
+CDR_SEQUENCE_KEY = 'CDR3b'
 EPITOPE_KEY = 'Epitope'
 
 
-class VDJdbDataModule(LightningDataModule):
-    def __init__(self, data_path: str, batch_size: int, encoding: str, class_sampling_method: str):
+class DataModule(LightningDataModule):
+    def __init__(self, data_sets: list[dict], batch_size: int, encoding: str, class_sampling_method: str):
         super().__init__()
-        self._data_path = data_path
+        self._data_sets = data_sets
         self._batch_size = batch_size
         self._classes_per_batch = batch_size // 2
         self._encoding = encoding
@@ -26,16 +28,17 @@ class VDJdbDataModule(LightningDataModule):
         self._class_sampling_method = class_sampling_method
 
     def setup(self, stage: Optional[str] = None, debug=False, seed=1) -> None:
-        skip_rows = (lambda i: i > 0 and np.random.choice([True, False], p=[0.99, 0.01])) if debug else None
+        data = self._concatenate_datasets()
 
-        raw_data = pd.read_csv(self._data_path, sep=DATA_SEPARATOR, skiprows=skip_rows)
+        if debug:
+            data = data.sample(frac=0.01, random_state=seed)
 
-        raw_train_set, raw_val_set = self._train_val_split(raw_data, train_fraction=0.8, random_state=seed)
+        raw_train_set, raw_val_set = self._train_val_split(data, train_fraction=0.8, random_state=seed)
 
         train_set = self._remove_small_class_data(raw_train_set, min_class_size=2)
         val_set = self._remove_small_class_data(raw_val_set, min_class_size=2)
 
-        sequence_size = self._get_sequence_size(raw_data)
+        sequence_size = self._get_sequence_size(data)
 
         processed_cdr_train_sequences = self._process_cdr_sequences(train_set, sequence_size)
         processed_cdr_val_sequences = self._process_cdr_sequences(val_set, sequence_size)
@@ -57,8 +60,7 @@ class VDJdbDataModule(LightningDataModule):
                                           class_sampling_method=self._class_sampling_method)
 
     def _process_cdr_sequences(self, data, sequence_size: int):
-        trimmed = self._trim(data[CDR_SEQUENCE_KEY])
-        padded = self._pad(trimmed, sequence_size)
+        padded = self._pad(data[CDR_SEQUENCE_KEY], sequence_size)
         tokenized = self._tokenize(padded)
         encoded = self._encode(tokenized)
         return encoded
@@ -78,9 +80,7 @@ class VDJdbDataModule(LightningDataModule):
         pass
 
     def _encode(self, tokens):
-        unique_tokens = sorted(set([t for element in tokens for t in element]))
-        token_to_id = {t: id_ for id_, t in enumerate(unique_tokens)}
-        token_ids = torch.tensor([[token_to_id[t] for t in token] for token in tokens])
+        token_ids = torch.tensor([[AMINO_ACID_ENUMERATION[t] for t in token] for token in tokens])
 
         if self._encoding == 'ordinal':
             return token_ids
@@ -96,10 +96,6 @@ class VDJdbDataModule(LightningDataModule):
     @staticmethod
     def _pad(input_data, size):
         return input_data.apply(lambda x: x.ljust(size, '-'))
-
-    @staticmethod
-    def _trim(input_data):
-        return input_data.apply(lambda x: x[1:-1])
 
     @property
     def dimension(self):
@@ -126,3 +122,20 @@ class VDJdbDataModule(LightningDataModule):
         class_sizes = raw_data.groupby(EPITOPE_KEY)[EPITOPE_KEY].transform(len)
 
         return raw_data[class_sizes >= min_class_size]
+
+    def _concatenate_datasets(self):
+        data_frames = []
+
+        for data_set in self._data_sets:
+            if data_set['source'] == 'IEDB':
+                data_frames.append(prepare_iedb(data_set['file']))
+            elif data_set['source'] == 'VDJdb':
+                data_frames.append(prepare_vdjdb(data_set['file']))
+            else:
+                raise NotImplementedError('Cannot process dataset of source {}'.format(data_set['source']))
+
+        data = pd.concat(data_frames)
+        data.drop_duplicates(inplace=True)
+
+        return data
+

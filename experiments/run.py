@@ -7,7 +7,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
-from meTCRs.dataloader.VDJdb_data_module import VDJdbDataModule
+from meTCRs.dataloader.data_module import DataModule
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.mlp import Mlp
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
@@ -19,7 +19,7 @@ def set_seed(seed):
 
 
 def run(save_path: str,
-        data_file: str,
+        data_sets: list[dict],
         data_params: dict,
         dist_type: str,
         loss_type: str,
@@ -33,7 +33,7 @@ def run(save_path: str,
         debug: bool):
     set_seed(seed)
 
-    data = setup_data(data_params, data_file, debug, seed)
+    data = setup_data(data_params, data_sets, debug, seed)
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
     model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
@@ -56,9 +56,10 @@ def get_trainer(save_path: str, trainer_params: dict, early_stopping_params: dic
     return trainer
 
 
-def setup_data(data_params: dict, data_file: str, debug: bool, seed: int):
-    data_path = os.path.join(os.path.dirname(__file__), '..', 'data', data_file)
-    data = VDJdbDataModule(data_path, **data_params)
+def setup_data(data_params: dict, data_sets: list[dict], debug: bool, seed: int):
+    for data_set in data_sets:
+        data_set['file'] = os.path.join(os.path.dirname(__file__), '..', 'data', data_set['file'])
+    data = DataModule(data_sets, **data_params)
     data.setup(debug=debug, seed=seed)
     return data
 

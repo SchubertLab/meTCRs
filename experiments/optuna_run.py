@@ -45,7 +45,7 @@ def get_run_params_from_config(config_dict, trial):
     fixed_params = config_dict['fixed_params']
     optimizable_params = config_dict['optimizable_params']
 
-    run_params['data_file'] = fixed_params['data_file']
+    run_params['data_sets'] = fixed_params['data_sets']
     run_params['dist_type'] = fixed_params['dist_type']
     run_params['loss_type'] = fixed_params['loss_type']
     run_params['model_type'] = fixed_params['model_type']
