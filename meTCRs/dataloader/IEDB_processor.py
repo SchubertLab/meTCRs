@@ -15,9 +15,22 @@ def remove_invalid_epitopes(data):
     return data[~mask]
 
 
+def trim_cdr(data):
+    def trim(x: str):
+        if x.startswith('C') and (x.endswith('F') or x.endswith('W')):
+            return x[1:-1]
+        else:
+            return x
+
+    data[CDR_SEQUENCE_KEY] = data[CDR_SEQUENCE_KEY].apply(trim)
+
+    return data
+
+
 def prepare_iedb(path):
     data = pd.read_csv(path)
     data = remove_nans(data)
+    data = trim_cdr(data)
     data = remove_invalid_epitopes(data)
 
     return pd.DataFrame({'CDR3b': data[CDR_SEQUENCE_KEY], 'Epitope': data[EPITOPE_KEY]})
