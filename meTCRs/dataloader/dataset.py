@@ -18,7 +18,8 @@ class TCREpitopeDataset(IterableDataset):
                  batch_size: int,
                  classes_per_batch: int,
                  total_batches: int,
-                 class_sampling_method: str = "uniform"):
+                 class_sampling_method: str = "uniform",
+                 use_replacement: bool = False):
         """
         :param tcr_data: iterable, contains the tcr sequences
         :param epitope_data: pandas.Series, contains the epitopes related to each
@@ -32,6 +33,7 @@ class TCREpitopeDataset(IterableDataset):
         self.batch_size = batch_size
         self.classes_per_batch = classes_per_batch
         self.total_batches = total_batches
+        self.use_replacement = use_replacement
 
         self.epitope_list = list(epitope_data)
         self.class_dict = list_inversion_dict(self.epitope_list)
@@ -55,10 +57,12 @@ class TCREpitopeDataset(IterableDataset):
         for _ in range(self.total_batches):
             classes = np.random.choice(list(self.classes),
                                        size=self.classes_per_batch,
-                                       replace=False,
+                                       replace=self.use_replacement,
                                        p=self.class_probabilities)
             for cls in classes:
-                indices = np.random.choice(self.class_dict[cls], size=self.samples_per_class, replace=False)
+                indices = np.random.choice(self.class_dict[cls],
+                                           size=self.samples_per_class,
+                                           replace=self.use_replacement)
                 for idx in indices:
                     samples.append((np.array(self.tcr_data[idx]), self.epitope_list[idx]))
 

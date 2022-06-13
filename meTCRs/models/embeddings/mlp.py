@@ -1,3 +1,5 @@
+from typing import List
+
 from pytorch_lightning import LightningModule
 from torch import nn, float32
 from torch.optim import Adam
@@ -6,7 +8,12 @@ from meTCRs.dataloader.utils.pair_maker import pair_maker
 
 
 class Mlp(LightningModule):
-    def __init__(self, loss, number_inputs, number_outputs, number_hidden, optimizer_params=None):
+    def __init__(self,
+                 number_inputs: int,
+                 number_outputs: int,
+                 number_hidden: List[int],
+                 loss=None,
+                 optimizer_params=None):
         super().__init__()
         self.save_hyperparameters()
 
@@ -15,15 +22,7 @@ class Mlp(LightningModule):
         else:
             self._optimizer_params = optimizer_params
 
-        self.model = nn.Sequential(
-            nn.Linear(number_inputs, number_hidden),
-            nn.ReLU(),
-            nn.BatchNorm1d(number_hidden),
-            nn.Linear(number_hidden, number_hidden),
-            nn.ReLU(),
-            nn.BatchNorm1d(number_hidden),
-            nn.Linear(number_hidden, number_outputs)
-        )
+        self.model = self._setup_model(number_inputs, number_outputs, number_hidden)
 
         self.loss = loss
 
@@ -43,9 +42,21 @@ class Mlp(LightningModule):
         self.log('val_loss', loss)
 
     def _perform_step(self, batch):
+        if self._loss is None:
+            raise ValueError("`_perform_step` requires a loss function but loss is None")
+
         input_sequence, labels = batch
         embeddings = self.model(input_sequence.type(float32))
         anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
         return self.loss(anchor1, positive, anchor2, negative)
+
+    @staticmethod
+    def _setup_model(number_inputs: int, number_outputs: int, number_hidden: List[int]):
+        layers = [nn.Linear(number_inputs, number_hidden[0]), nn.ReLU(), nn.BatchNorm1d(number_hidden[0])]
+        for i in range(len(number_hidden)-1):
+            layers += [nn.Linear(number_hidden[i], number_hidden[i+1]), nn.ReLU(), nn.BatchNorm1d(number_hidden[i+1])]
+        layers += [nn.Linear(number_hidden[-1], number_outputs)]
+
+        return nn.Sequential(*layers)
 
 
