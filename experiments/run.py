@@ -1,16 +1,16 @@
 import os.path
 
-import torch
 import numpy as np
+import torch
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.dataloader.data_module import DataModule
+from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.models.distances.euclidean import Euclidean
-from meTCRs.models.embeddings.barlow_twins import BarlowTwins
 from meTCRs.models.embeddings.mlp import Mlp
+from meTCRs.models.losses.barlow_twin_loss import BarlowTwinLoss
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
 
@@ -68,14 +68,6 @@ def setup_data(data_params: dict, data_sets: list[dict], debug: bool, seed: int)
 def get_model(loss, model_type: str, number_inputs: int, model_params: dict, optimizer_params: dict):
     if model_type == 'mlp':
         model = Mlp(loss=loss, number_inputs=number_inputs, optimizer_params=optimizer_params, **model_params)
-    elif model_type == 'barlow-twins':
-        encoder = Mlp(number_inputs=number_inputs,
-                      number_outputs=model_params['latent_space_dim'],
-                      number_hidden=model_params['encoder_hidden_dims'])
-        projection_head = Mlp(number_inputs=model_params['latent_space_dim'],
-                              number_outputs=model_params['number_outputs'],
-                              number_hidden=model_params['projection_head_hidden'])
-        model = BarlowTwins(encoder, projection_head, batch_size= optimizer_params=optimizer_params)
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))
     return model
@@ -84,6 +76,8 @@ def get_model(loss, model_type: str, number_inputs: int, model_params: dict, opt
 def get_loss(distance, loss_params: dict, loss_type: str):
     if loss_type == 'contrastive':
         loss = ContrastiveLoss(distance, **loss_params)
+    elif loss_type == 'barlow-twin':
+        loss = BarlowTwinLoss(**loss_params)
     else:
         raise NotImplementedError("loss of type {} is not implemented".format(loss_type))
     return loss
