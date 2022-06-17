@@ -27,12 +27,10 @@ def suggest_params(trial: optuna.trial.BaseTrial, sample_spaces: dict):
             params[variable_name] = trial.suggest_int(variable_name, **variable_specs['sample_space'])
         elif variable_specs['type'] == 'float':
             params[variable_name] = trial.suggest_float(variable_name, **variable_specs['sample_space'])
-        elif variable_specs['type'] == 'int-list':
-            sample_space = variable_specs['sample_space']
-            params[variable_name] = [
-                trial.suggest_int(variable_name + '_{}'.format(i), **sample_space['item_space'])
-                for i in range(sample_space['length'])
-            ]
+        elif variable_specs['type'] == 'power':
+            params[variable_name] = suggest_power(trial, variable_name, **variable_specs['sample_space'])
+        elif variable_specs['type'] == 'list':
+            params[variable_name] = suggest_list(trial, variable_name, **variable_specs['sample_space'])
         else:
             raise NameError('Type of name {} cannot be suggested'.format(variable_specs['type']))
 
@@ -55,6 +53,33 @@ def suggest_power(trial: optuna.trial.BaseTrial,
         return 0
 
     return base**exponential
+
+
+def suggest_list(trial: optuna.trial.BaseTrial,
+                 name: str,
+                 element_type: str,
+                 sample_space: dict,
+                 max_size: int,
+                 ignore_if_zero: bool):
+    lst = []
+
+    for i in range(max_size):
+        sample_name = name + '_{}'.format(i)
+        if element_type == 'categorical':
+            lst.append(trial.suggest_categorical(sample_name, **sample_space))
+        elif element_type == 'int':
+            lst.append(trial.suggest_int(sample_name, **sample_space))
+        elif element_type == 'float':
+            lst.append(trial.suggest_float(sample_name, **sample_space))
+        elif element_type == 'power':
+            lst.append(suggest_power(trial, sample_name, **sample_space))
+        else:
+            raise NameError('Type of name {} cannot be suggested'.format(element_type))
+
+    if ignore_if_zero:
+        return [s for s in lst if s != 0]
+
+    return lst
 
 
 def objective(trial, config_dict: dict, debug: bool):
