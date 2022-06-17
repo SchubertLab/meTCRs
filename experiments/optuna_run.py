@@ -1,5 +1,7 @@
 import sys
 import os
+from typing import Union
+
 import yaml
 import argparse
 
@@ -8,7 +10,6 @@ import optuna
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from run import run
-
 
 parser = argparse.ArgumentParser(description='Run experiments with Optuna hyperparameter optimization')
 parser.add_argument('configuration_file', type=str)
@@ -26,15 +27,40 @@ def suggest_params(trial: optuna.trial.BaseTrial, sample_spaces: dict):
             params[variable_name] = trial.suggest_int(variable_name, **variable_specs['sample_space'])
         elif variable_specs['type'] == 'float':
             params[variable_name] = trial.suggest_float(variable_name, **variable_specs['sample_space'])
+        elif variable_specs['type'] == 'int-list':
+            sample_space = variable_specs['sample_space']
+            params[variable_name] = [
+                trial.suggest_int(variable_name + '_{}'.format(i), **sample_space['item_space'])
+                for i in range(sample_space['length'])
+            ]
         else:
             raise NameError('Type of name {} cannot be suggested'.format(variable_specs['type']))
 
     return params
 
 
+def suggest_power(trial: optuna.trial.BaseTrial,
+                  name: str,
+                  min_exp: int,
+                  max_exp: int,
+                  base: Union[int, float],
+                  include_zero: bool = False):
+    if include_zero:
+        assert min_exp == 0, "If 0 should be included in power-of-two sampling, the lowest exponent should be 0 too"
+        min_exp = -1
+
+    exponential = trial.suggest_int(name=name + "_exponent", low=min_exp, high=max_exp)
+
+    if exponential == -1:
+        return 0
+
+    return base**exponential
+
+
 def objective(trial, config_dict: dict, debug: bool):
     run_params = get_run_params_from_config(config_dict, trial)
-    save_path = os.path.join(os.path.dirname(__file__), 'optuna_runs', config_dict['name'], 'trial_{}'.format(trial.number))
+    save_path = os.path.join(os.path.dirname(__file__), 'optuna_runs', config_dict['name'],
+                             'trial_{}'.format(trial.number))
 
     return run(**run_params, save_path=save_path, debug=debug)
 
