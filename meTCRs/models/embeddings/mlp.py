@@ -22,15 +22,15 @@ class Mlp(LightningModule):
         else:
             self._optimizer_params = optimizer_params
 
-        self.model = self._setup_model(number_inputs, number_outputs, number_hidden)
+        self._model = self._setup_model(number_inputs, number_outputs, number_hidden)
 
-        self.loss = loss
+        self._loss = loss
 
     def configure_optimizers(self):
         return Adam(self.parameters(), **self._optimizer_params)
 
     def forward(self, x):
-        return self.model(x.type(float32))
+        return self._model(x.type(float32))
 
     def training_step(self, batch, batch_index):
         loss = self._perform_step(batch)
@@ -46,9 +46,9 @@ class Mlp(LightningModule):
             raise ValueError("`_perform_step` requires a loss function but loss is None")
 
         input_sequence, labels = batch
-        embeddings = self.model(input_sequence.type(float32))
+        embeddings = self._model(input_sequence.type(float32))
         anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
-        return self.loss(anchor1, positive, anchor2, negative)
+        return self._loss(anchor1, positive, anchor2, negative)
 
     @staticmethod
     def _setup_model(number_inputs: int, number_outputs: int, number_hidden: List[int]):

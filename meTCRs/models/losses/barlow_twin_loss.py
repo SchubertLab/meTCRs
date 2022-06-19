@@ -8,7 +8,7 @@ class BarlowTwinLoss(Module):
     :param lmd: float, The regularization parameter lambda
     """
     def __init__(self, lmd: float):
-        super(BarlowTwinLoss).__init__()
+        super(BarlowTwinLoss, self).__init__()
 
         self._lmd = lmd
 

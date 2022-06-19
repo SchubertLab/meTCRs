@@ -28,6 +28,7 @@ class TCREpitopeDataset(IterableDataset):
                                   total number of classes available in the labels iterable
         :param total_batches: int, total number of batches to be created
         :param class_sampling_method: str, method to sample classes. Can be 'uniform' or 'linear'.
+        :param use_replacement: bool, use replacement when sampling sequences per class.
         """
         self.tcr_data = tcr_data
         self.batch_size = batch_size
