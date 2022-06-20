@@ -1,7 +1,6 @@
 import itertools
 
 import torch
-from torch.nn import MSELoss
 
 
 def pair_maker(labels, embeddings):

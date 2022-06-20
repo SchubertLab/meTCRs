@@ -16,7 +16,7 @@ EPITOPE_KEY = 'Epitope'
 
 
 class DataModule(LightningDataModule):
-    def __init__(self, data_sets: list[dict], batch_size: int, encoding: str, class_sampling_method: str):
+    def __init__(self, data_sets: list[dict], batch_size: int, encoding: str, class_sampling_method: str, sample_with_replacement: bool):
         super().__init__()
         self._data_sets = data_sets
         self._batch_size = batch_size
@@ -26,6 +26,7 @@ class DataModule(LightningDataModule):
         self._val_set = None
         self._dimension = None
         self._class_sampling_method = class_sampling_method
+        self._sample_with_replacement = sample_with_replacement
 
     def setup(self, stage: Optional[str] = None, debug=False, seed=1) -> None:
         data = self._concatenate_datasets()
@@ -50,14 +51,16 @@ class DataModule(LightningDataModule):
                                             batch_size=self._batch_size,
                                             classes_per_batch=self._classes_per_batch,
                                             total_batches=len(processed_cdr_train_sequences) // self._batch_size,
-                                            class_sampling_method=self._class_sampling_method)
+                                            class_sampling_method=self._class_sampling_method,
+                                            use_replacement=self._sample_with_replacement)
 
         self._val_set = TCREpitopeDataset(tcr_data=processed_cdr_val_sequences,
                                           epitope_data=val_set[EPITOPE_KEY],
                                           batch_size=self._batch_size,
                                           classes_per_batch=self._classes_per_batch,
                                           total_batches=len(processed_cdr_val_sequences) // self._batch_size,
-                                          class_sampling_method=self._class_sampling_method)
+                                          class_sampling_method=self._class_sampling_method,
+                                          use_replacement=self._sample_with_replacement)
 
     def _process_cdr_sequences(self, data, sequence_size: int):
         padded = self._pad(data[CDR_SEQUENCE_KEY], sequence_size)

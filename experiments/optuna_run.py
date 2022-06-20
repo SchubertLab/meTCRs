@@ -117,7 +117,7 @@ def run_study(config_dict, n_trials, debug):
                                 study_name=config_dict['name'],
                                 direction='maximize',
                                 load_if_exists=True)
-    study.optimize(lambda trial: objective(trial, config_dict, debug), n_trials=n_trials)
+    study.optimize(lambda trial: objective(trial, config_dict, debug), n_trials=n_trials, catch=(ValueError,))
 
 
 if __name__ == '__main__':
