@@ -19,4 +19,11 @@ def pair_maker(labels, embeddings):
             anchor2.append(embeddings[i])
             negative.append(embeddings[j])
 
-    return torch.stack(anchor1), torch.stack(positive), torch.stack(anchor2), torch.stack(negative)
+    return _stack(anchor1), _stack(positive), _stack(anchor2), _stack(negative)
+
+
+def _stack(tensors: list[torch.Tensor]):
+    if len(tensors) == 0:
+        return torch.tensor([])
+    else:
+        return torch.stack(tensors)

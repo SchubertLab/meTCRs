@@ -58,7 +58,7 @@ class TCREpitopeDataset(IterableDataset):
         for _ in range(self.total_batches):
             classes = np.random.choice(list(self.classes),
                                        size=self.classes_per_batch,
-                                       replace=False,
+                                       replace=True,
                                        p=self.class_probabilities)
             for cls in classes:
                 indices = np.random.choice(self.class_dict[cls],
