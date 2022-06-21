@@ -1,0 +1,69 @@
+# Tested with dbe678df578e7e489457d68d4fcec8e6608fb4b2
+name: "mlp_barlow_4"
+fixed_params:
+  data_sets:
+    - file: "VDJdb-2022-02-25 12_58_09.77.tsv"
+      source: "VDJdb"
+    - file: "IEDB-2022-03-06.csv"
+      source: "IEDB"
+  dist_type: "l2"
+  data_params:
+    encoding: "one_hot"
+    class_sampling_method: "linear"
+    sample_with_replacement: true
+  loss_type: "barlow-twin"
+  trainer_params:
+    accelerator: "gpu"
+    devices: 1
+    strategy: "ddp"
+    check_val_every_n_epoch: 3
+  early_stopping_params:
+    patience: 5
+  model_type: "mlp"
+  seed: 42
+optimizable_params:
+  loss_params:
+    lmd:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 1.
+        log: true
+    regulator:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 1
+        log: true
+  model_params:
+    number_outputs:
+      type: "power"
+      sample_space:
+        min_exp: 0
+        max_exp: 9
+        base: 2
+    number_hidden:
+      type: "list"
+      sample_space:
+        element_type: "power"
+        sample_space:
+          min_exp: 0
+          max_exp: 11
+          base: 2
+          include_zero: true
+        max_size: 5
+        ignore_if_zero: true
+  optimizer_params:
+    lr:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 0.1
+        log: true
+  data_params:
+    batch_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 11
+        base: 2
