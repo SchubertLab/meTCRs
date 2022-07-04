@@ -7,6 +7,7 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
 from meTCRs.dataloader.data_module import DataModule
+from meTCRs.evaluation.mean_average_precision import MeanAveragePrecision
 from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.mlp import Mlp
@@ -30,6 +31,8 @@ def run(save_path: str,
         optimizer_params: dict,
         trainer_params: dict,
         early_stopping_params: dict,
+        evaluation_method: str,
+        evaluation_params: dict,
         seed: int,
         debug: bool):
     set_seed(seed)
@@ -42,9 +45,12 @@ def run(save_path: str,
 
     trainer.fit(model, datamodule=data)
 
-    evaluation_results = pairwise_distance_evaluation(model, dist_type, data.val_data)
-
-    return evaluation_results['score']
+    if evaluation_method == 'roc_auc':
+        return pairwise_distance_evaluation(model, dist_type, data.val_data)['score']
+    elif evaluation_method == 'map_at_r':
+        sequences, labels = data.val_data
+        map_at_r = MeanAveragePrecision(dist_type=dist_type, sequences=sequences, labels=labels, **evaluation_params)
+        return map_at_r(model)
 
 
 def get_trainer(save_path: str, trainer_params: dict, early_stopping_params: dict):

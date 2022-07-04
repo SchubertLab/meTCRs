@@ -18,7 +18,7 @@ class MeanAveragePrecision:
 
         knn_tensor = pairwise_distances.topk(k=self._r + 1, dim=1, largest=False, sorted=True).indices
 
-        return torch.mean(torch.sum(self._map_at_r(knn_tensor), dim=1))
+        return float(torch.mean(torch.sum(self._map_at_r(knn_tensor), dim=1)))
 
     def _map_at_r(self, knn_tensor):
         match_matrix = torch.tensor([])
@@ -37,7 +37,7 @@ class MeanAveragePrecision:
             idx = int(idx)
             if idx != key:
                 match.append(self._labels[idx] == self._labels[key])
-        match_vector = torch.tensor([match[:self._r + 1]])
+        match_vector = torch.tensor([match[:self._r]])
         return match_vector
 
     def _compare(self, i, j):
