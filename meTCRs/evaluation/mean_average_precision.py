@@ -13,6 +13,9 @@ class MeanAveragePrecision:
 
         if self._dist_type == 'l2':
             pairwise_distances = torch.cdist(embedded_sequences, embedded_sequences)
+        elif self._dist_type == 'random':
+            length = len(embedded_sequences)
+            pairwise_distances = torch.rand((length, length))
         else:
             raise NotImplementedError('MAP evaluation not implemented for dist_type {}'.format(self._dist_type))
 
@@ -27,7 +30,7 @@ class MeanAveragePrecision:
             match_vector = self._create_match_vector(key, knn)
             match_matrix = torch.cat([match_matrix, match_vector], dim=0)
 
-        weight_matrix = torch.triu(torch.stack([1/r * torch.ones(self._r) for r in reversed(range(1, self._r+1))]))
+        weight_matrix = torch.triu(torch.stack([1 / r * torch.ones(self._r) for r in reversed(range(1, self._r + 1))]))
 
         return torch.matmul(match_matrix, weight_matrix) * match_matrix / self._r
 
@@ -42,7 +45,3 @@ class MeanAveragePrecision:
 
     def _compare(self, i, j):
         return self._labels[i] == self._labels[j]
-
-
-
-
