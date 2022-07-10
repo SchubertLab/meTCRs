@@ -44,7 +44,7 @@ class DataModule(LightningDataModule):
         processed_cdr_train_sequences = self._process_cdr_sequences(train_set, sequence_size)
         processed_cdr_val_sequences = self._process_cdr_sequences(val_set, sequence_size)
 
-        self._dimension = processed_cdr_train_sequences.shape[1]
+        self._dimension = processed_cdr_train_sequences.shape[1:]
 
         self._train_set = TCREpitopeDataset(tcr_data=processed_cdr_train_sequences,
                                             epitope_data=train_set[EPITOPE_KEY],
@@ -88,7 +88,7 @@ class DataModule(LightningDataModule):
         if self._encoding == 'ordinal':
             return token_ids
         elif self._encoding == 'one_hot':
-            return one_hot(token_ids).flatten(1)
+            return one_hot(token_ids)
         else:
             raise NotImplementedError('Encoding of type {} is not defined.'.format(self._encoding))
 

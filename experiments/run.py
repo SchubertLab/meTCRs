@@ -1,4 +1,7 @@
+import sys
 import os.path
+import argparse
+import yaml
 
 import numpy as np
 import torch
@@ -6,13 +9,20 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+sys.path.append(os.path.join(sys.path[0], '..'))
+
 from meTCRs.dataloader.data_module import DataModule
 from meTCRs.evaluation.mean_average_precision import MeanAveragePrecision
 from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.models.distances.euclidean import Euclidean
+from meTCRs.models.embeddings.cnn import Cnn
 from meTCRs.models.embeddings.mlp import Mlp
 from meTCRs.models.losses.barlow_twin_loss import BarlowTwinLoss
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
+
+
+parser = argparse.ArgumentParser(description='Run experiments without hyperparameter optimization')
+parser.add_argument('configuration_file', type=str)
 
 
 def set_seed(seed):
@@ -71,9 +81,15 @@ def setup_data(data_params: dict, data_sets: list[dict], debug: bool, seed: int)
     return data
 
 
-def get_model(loss, model_type: str, number_inputs: int, model_params: dict, optimizer_params: dict):
+def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: dict):
     if model_type == 'mlp':
-        model = Mlp(loss=loss, number_inputs=number_inputs, optimizer_params=optimizer_params, **model_params)
+        model = Mlp(loss=loss, input_dimension=input_dimension, optimizer_params=optimizer_params, **model_params)
+    elif model_type == 'cnn':
+        model = Cnn(input_size=input_dimension[0],
+                    number_labels=input_dimension[1],
+                    optimizer_params=optimizer_params,
+                    loss=loss,
+                    **model_params)
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))
     return model
@@ -95,3 +111,14 @@ def get_distance(dist_type: str):
     else:
         raise NotImplementedError("distance of type {} is not implemented".format(dist_type))
     return distance
+
+
+if __name__ == '__main__':
+    args = parser.parse_args()
+
+    with open(args.configuration_file, 'r') as f:
+        config = yaml.safe_load(f)
+
+    score = run(**config)
+
+    print('Experiment finished with score: {}'.format(score))
