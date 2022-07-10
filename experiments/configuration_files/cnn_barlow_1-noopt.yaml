@@ -1,5 +1,5 @@
 # Tested with ed83e252517eccf3e762951923af086cc7827316
-save_path: '.'
+save_path: '~/meTCRs/experiments/noopt/cnn_barlow_1-noopt'
 data_sets:
   - file: "VDJdb-2022-02-25 12_58_09.77.tsv"
     source: "VDJdb"
