@@ -9,6 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from meTCRs.dataloader.data_module import DataModule
@@ -17,6 +18,7 @@ from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.cnn import Cnn
 from meTCRs.models.embeddings.mlp import Mlp
+from meTCRs.models.embeddings.lstm import Lstm
 from meTCRs.models.losses.barlow_twin_loss import BarlowTwinLoss
 from meTCRs.models.losses.contrastive_loss import ContrastiveLoss
 
@@ -90,6 +92,8 @@ def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: 
                     optimizer_params=optimizer_params,
                     loss=loss,
                     **model_params)
+    elif model_type == 'lstm':
+        model = Lstm(loss=loss, number_labels=input_dimension[1], optimizer_params=optimizer_params, **model_params)
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))
     return model
