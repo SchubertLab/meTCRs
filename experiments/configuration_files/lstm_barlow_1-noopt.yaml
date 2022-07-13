@@ -1,0 +1,37 @@
+# Tested with 0a67b5d6973e1c2b71f8a596088841b2cfc6d546
+save_path: '~/meTCRs/experiments/noopt/lstm_barlow_1-noopt'
+data_sets:
+  - file: "VDJdb-2022-02-25 12_58_09.77.tsv"
+    source: "VDJdb"
+  - file: "IEDB-2022-03-06.csv"
+    source: "IEDB"
+data_params:
+  batch_size: 32
+  encoding: 'one_hot'
+  class_sampling_method: 'linear'
+  sample_with_replacement: true
+dist_type: 'l2'
+loss_type: 'barlow-twin'
+loss_params:
+  lmd: 5.e-3
+  regulator: 1.e-12
+model_type: 'lstm'
+model_params:
+  embedding_size: 8
+  hidden_size: 512
+  number_layers: 2
+  output_size: ~
+optimizer_params:
+  lr: 1.e-3
+trainer_params:
+  accelerator: "cpu"
+  devices: 1
+  strategy: "ddp"
+  check_val_every_n_epoch: 3
+early_stopping_params:
+  patience: 5
+evaluation_method: "map_at_r"
+evaluation_params:
+  R: 10
+seed: 42
+debug: true
