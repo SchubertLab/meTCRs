@@ -9,6 +9,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from meTCRs.models.embeddings.transformer import TransformerEncoder
 
 sys.path.append(os.path.join(sys.path[0], '..'))
 
@@ -94,6 +95,12 @@ def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: 
                     **model_params)
     elif model_type == 'lstm':
         model = Lstm(loss=loss, number_labels=input_dimension[1], optimizer_params=optimizer_params, **model_params)
+    elif model_type == 'transformer':
+        model = TransformerEncoder(loss=loss,
+                                   input_size=input_dimension[0],
+                                   number_labels=input_dimension[1],
+                                   optimizer_params=optimizer_params,
+                                   **model_params)
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))
     return model
