@@ -61,9 +61,8 @@ def run(save_path: str,
     if evaluation_method == 'roc_auc':
         return pairwise_distance_evaluation(model, dist_type, data.val_data)['score']
     elif evaluation_method == 'map_at_r':
-        sequences, labels = data.val_data
-        map_at_r = MeanAveragePrecision(dist_type=dist_type, sequences=sequences, labels=labels, **evaluation_params)
-        return map_at_r(model)
+        map_at_r = MeanAveragePrecision(dist_type=dist_type, data=data, **evaluation_params)
+        return map_at_r(model, use_batched_data=True)
 
 
 def get_trainer(save_path: str, trainer_params: dict, early_stopping_params: dict):

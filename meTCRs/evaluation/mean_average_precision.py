@@ -1,15 +1,18 @@
 import torch
 
+from meTCRs.dataloader.data_module import DataModule
+
 
 class MeanAveragePrecision:
-    def __init__(self, dist_type: str, R: int, sequences: torch.Tensor, labels):
+    def __init__(self, dist_type: str, R: int, data: DataModule):
         self._dist_type = dist_type
         self._r = R
-        self._sequences = sequences
-        self._labels = labels
+        self._data = data
+        self._labels = None
 
-    def __call__(self, model):
-        embedded_sequences = model(self._sequences)
+    def __call__(self, model, use_batched_data: True):
+        embedded_sequences, labels = self._get_embedding(model, use_batched_data)
+        self._labels = labels
 
         if self._dist_type == 'l2':
             pairwise_distances = torch.cdist(embedded_sequences, embedded_sequences)
@@ -22,6 +25,18 @@ class MeanAveragePrecision:
         knn_tensor = pairwise_distances.topk(k=self._r + 1, dim=1, largest=False, sorted=True).indices
 
         return float(torch.mean(torch.sum(self._map_at_r(knn_tensor), dim=1)))
+
+    def _get_embedding(self, model, use_batched_data):
+        if use_batched_data:
+            embedded_sequences = torch.tensor([])
+            labels = []
+            for sequence_batch, label_batch in iter(self._data.test_dataloader()):
+                embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch)])
+                labels += label_batch
+            return embedded_sequences, labels
+        else:
+            sequences, labels = self._data.val_data
+            return model(sequences), labels
 
     def _map_at_r(self, knn_tensor):
         match_matrix = torch.tensor([])

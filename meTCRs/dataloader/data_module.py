@@ -7,7 +7,7 @@ from torch.nn.functional import one_hot
 
 from meTCRs.dataloader.IEDB_processor import prepare_iedb
 from meTCRs.dataloader.VDJdb_processor import prepare_vdjdb
-from meTCRs.dataloader.dataset import TCREpitopeDataset
+from meTCRs.dataloader.dataset import TCREpitopeDataset, TestDataset
 from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION
 
 DATA_SEPARATOR = '\t'
@@ -24,6 +24,7 @@ class DataModule(LightningDataModule):
         self._encoding = encoding
         self._train_set = None
         self._val_set = None
+        self._test_set = None
         self._dimension = None
         self._class_sampling_method = class_sampling_method
         self._sample_with_replacement = sample_with_replacement
@@ -62,6 +63,8 @@ class DataModule(LightningDataModule):
                                           class_sampling_method=self._class_sampling_method,
                                           use_replacement=self._sample_with_replacement)
 
+        self._test_set = TestDataset(tcr_data=processed_cdr_val_sequences, epitope_data=val_set[EPITOPE_KEY])
+
     def _process_cdr_sequences(self, data, sequence_size: int):
         padded = self._pad(data[CDR_SEQUENCE_KEY], sequence_size)
         tokenized = self._tokenize(padded)
@@ -69,15 +72,13 @@ class DataModule(LightningDataModule):
         return encoded
 
     def train_dataloader(self):
-        return torch.utils.data.DataLoader(self._train_set,
-                                           batch_size=self._batch_size)
+        return torch.utils.data.DataLoader(self._train_set, batch_size=self._batch_size)
 
     def val_dataloader(self):
-        return torch.utils.data.DataLoader(self._val_set,
-                                           batch_size=self._batch_size)
+        return torch.utils.data.DataLoader(self._val_set, batch_size=self._batch_size)
 
     def test_dataloader(self):
-        pass
+        return torch.utils.data.DataLoader(self._test_set, batch_size=self._batch_size)
 
     def predict_dataloader(self):
         pass

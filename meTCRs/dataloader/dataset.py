@@ -1,6 +1,6 @@
 import numpy as np
 import pandas as pd
-from torch.utils.data import IterableDataset
+from torch.utils.data import Dataset, IterableDataset
 
 from meTCRs.dataloader.utils.list_inversion_dict import list_inversion_dict
 
@@ -68,3 +68,16 @@ class TCREpitopeDataset(IterableDataset):
                     samples.append((np.array(self.tcr_data[idx]), self.epitope_list[idx]))
 
         return iter(samples)
+
+
+class TestDataset(Dataset):
+    def __init__(self, tcr_data, epitope_data):
+        self.tcr_data = tcr_data
+        self.epitope_list = list(epitope_data)
+
+    def __getitem__(self, item):
+        return self.tcr_data[item], self.epitope_list[item]
+
+    def __len__(self):
+        return len(self.tcr_data)
+
