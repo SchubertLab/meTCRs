@@ -15,7 +15,7 @@ fixed_params:
   loss_params:
     regulator: 1.e-12
   trainer_params:
-    accelerator: "gpu"
+    accelerator: "cpu"
     devices: 1
     strategy: "ddp"
     check_val_every_n_epoch: 3
@@ -45,25 +45,25 @@ optimizable_params:
       type: "power"
       sample_space:
         min_exp: 5
-        max_exp: 10
+        max_exp: 8
         base: 2
     number_heads:
       type: "power"
       sample_space:
         min_exp: 1
-        max_exp: 4
+        max_exp: 3
         base: 2
     forward_expansion:
       type: "power"
       sample_space:
-        min_exp: 7
-        max_exp: 11
+        min_exp: 6
+        max_exp: 9
         base: 2
     number_layers:
       type: "int"
       sample_space:
         low: 2
-        high: 9
+        high: 6
   optimizer_params:
     lr:
       type: "float"
