@@ -24,7 +24,7 @@ model_params:
 optimizer_params:
   lr: 1.e-3
 trainer_params:
-  accelerator: "cpu"
+  accelerator: "gpu"
   devices: 1
   strategy: "ddp"
   check_val_every_n_epoch: 3

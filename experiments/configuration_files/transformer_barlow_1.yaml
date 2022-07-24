@@ -76,5 +76,5 @@ optimizable_params:
       type: "power"
       sample_space:
         min_exp: 2
-        max_exp: 9
+        max_exp: 6
         base: 2
