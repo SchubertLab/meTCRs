@@ -2,6 +2,7 @@ import math
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from torch.optim import Adam
 
 from pytorch_lightning import LightningModule
@@ -55,7 +56,8 @@ class Cnn(LightningModule):
         return nn.Sequential(*cnn_blocks)
 
     def forward(self, x):
-        x = torch.matmul(x.type(torch.float32), self._embedding).permute(0, 2, 1)
+        x = F.normalize(x.type(torch.float32), dim=-1)
+        x = torch.matmul(x, self._embedding).permute(0, 2, 1)
         x = self._cnn_blocks(x)
         x = x.flatten(1)
         return self._output_layer(x)

@@ -8,7 +8,7 @@ from torch.nn.functional import one_hot
 from meTCRs.dataloader.IEDB_processor import prepare_iedb
 from meTCRs.dataloader.VDJdb_processor import prepare_vdjdb
 from meTCRs.dataloader.dataset import TCREpitopeDataset, TestDataset
-from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION
+from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION, BLOSUM62
 
 DATA_SEPARATOR = '\t'
 CDR_SEQUENCE_KEY = 'CDR3b'
@@ -84,12 +84,13 @@ class DataModule(LightningDataModule):
         pass
 
     def _encode(self, tokens):
-        token_ids = torch.tensor([[AMINO_ACID_ENUMERATION[t] for t in token] for token in tokens])
-
         if self._encoding == 'ordinal':
-            return token_ids
+            return torch.tensor([[AMINO_ACID_ENUMERATION[t] for t in token] for token in tokens])
         elif self._encoding == 'one_hot':
+            token_ids = torch.tensor([[AMINO_ACID_ENUMERATION[t] for t in token] for token in tokens])
             return one_hot(token_ids)
+        elif self._encoding == 'blosum_62':
+            return torch.tensor([[BLOSUM62[AMINO_ACID_ENUMERATION[t]] for t in token] for token in tokens])
         else:
             raise NotImplementedError('Encoding of type {} is not defined.'.format(self._encoding))
 

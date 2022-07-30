@@ -1,5 +1,6 @@
 import torch
 from torch import nn
+import torch.nn.functional as F
 from pytorch_lightning import LightningModule
 from torch.optim import Adam
 
@@ -37,7 +38,8 @@ class Lstm(LightningModule):
         self._loss = loss
 
     def forward(self, x):
-        x = torch.matmul(x.type(torch.float32), self._embedding)
+        x = F.normalize(x.type(torch.float32), dim=-1)
+        x = torch.matmul(x, self._embedding)
         _, (_, c_n) = self._lstm(x)
         return c_n[-1]
 

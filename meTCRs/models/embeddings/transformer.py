@@ -2,6 +2,7 @@ import math
 
 import torch
 from torch import nn
+import torch.nn.functional as F
 from pytorch_lightning import LightningModule
 from torch.optim import Adam
 
@@ -66,12 +67,12 @@ class TransformerEncoder(LightningModule):
         self._loss = loss
 
     def forward(self, x):
+        x = F.normalize(x.type(torch.float32), dim=-1)
         x = torch.matmul(x.type(torch.float32), self._embedding)
         x = self._positional_encoding(x)
         x = self._transformer_encoder(x)
         x = x.flatten(1)
         return self._reduction(x)
-        return x
 
     def configure_optimizers(self):
         return Adam(self.parameters(), **self._optimizer_params)

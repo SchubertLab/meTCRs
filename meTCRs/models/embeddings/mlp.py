@@ -3,7 +3,8 @@ from typing import List
 
 import torch
 from pytorch_lightning import LightningModule
-from torch import nn, float32
+from torch import nn
+import torch.nn.functional as F
 from torch.optim import Adam
 
 from meTCRs.dataloader.utils.pair_maker import pair_maker
@@ -34,8 +35,9 @@ class Mlp(LightningModule):
         return Adam(self.parameters(), **self._optimizer_params)
 
     def forward(self, x):
+        x = F.normalize(x.type(torch.float32), dim=-1)
         x = x.flatten(1)
-        return self._model(x.type(float32))
+        return self._model(x)
 
     def training_step(self, batch, batch_index):
         loss = self._perform_step(batch)
@@ -51,7 +53,7 @@ class Mlp(LightningModule):
             raise ValueError("`_perform_step` requires a loss function but loss is None")
 
         input_sequence, labels = batch
-        embeddings = self(input_sequence.type(float32))
+        embeddings = self(input_sequence)
         anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
 
         return self._loss(anchor1, positive, anchor2, negative)
