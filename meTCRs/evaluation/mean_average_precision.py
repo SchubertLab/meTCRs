@@ -32,8 +32,7 @@ class MeanAveragePrecision:
             embedded_sequences = torch.tensor([])
             labels = []
             for sequence_batch, label_batch in tqdm(iter(self._data.test_dataloader())):
-                with torch.no_grad():
-                    embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch)])
+                embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch).detach()])
                 labels += label_batch
             return embedded_sequences, labels
         else:
