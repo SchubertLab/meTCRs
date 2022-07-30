@@ -15,7 +15,7 @@ fixed_params:
   loss_params:
     regulator: 1.e-12
   trainer_params:
-    accelerator: "cpu"
+    accelerator: "gpu"
     devices: 1
     strategy: "ddp"
     check_val_every_n_epoch: 3
