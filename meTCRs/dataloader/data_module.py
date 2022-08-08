@@ -6,6 +6,7 @@ from pytorch_lightning import LightningDataModule
 from torch.nn.functional import one_hot
 
 from meTCRs.dataloader.IEDB_processor import prepare_iedb
+from meTCRs.dataloader.McPAS_processor import prepare_mcpas
 from meTCRs.dataloader.VDJdb_processor import prepare_vdjdb
 from meTCRs.dataloader.dataset import TCREpitopeDataset, TestDataset
 from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION, BLOSUM62
@@ -136,6 +137,8 @@ class DataModule(LightningDataModule):
                 data_frames.append(prepare_iedb(data_set['file']))
             elif data_set['source'] == 'VDJdb':
                 data_frames.append(prepare_vdjdb(data_set['file']))
+            elif data_set['source'] == 'McPAS':
+                data_frames.append(prepare_mcpas(data_set['file']))
             else:
                 raise NotImplementedError('Cannot process dataset of source {}'.format(data_set['source']))
 
