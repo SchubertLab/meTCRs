@@ -4,17 +4,25 @@ from tqdm import tqdm
 from meTCRs.dataloader.data_module import DataModule
 
 
+def get_embedding(model, use_batched_data: bool, data_module: DataModule):
+    if use_batched_data:
+        embedded_sequences = torch.tensor([])
+        labels = []
+        for sequence_batch, label_batch in tqdm(iter(data_module.test_dataloader())):
+            embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch).detach()])
+            labels += label_batch
+        return embedded_sequences, labels
+    else:
+        sequences, labels = data_module.val_data
+        return model(sequences), labels
+
+
 class MeanAveragePrecision:
-    def __init__(self, dist_type: str, R: int, data: DataModule):
+    def __init__(self, dist_type: str, R: int):
         self._dist_type = dist_type
         self._r = R
-        self._data = data
-        self._labels = None
 
-    def __call__(self, model, use_batched_data: True):
-        embedded_sequences, labels = self._get_embedding(model, use_batched_data)
-        self._labels = labels
-
+    def __call__(self, embedded_sequences: torch.Tensor, labels: list):
         if self._dist_type == 'l2':
             pairwise_distances = torch.cdist(embedded_sequences, embedded_sequences)
         elif self._dist_type == 'random':
@@ -25,39 +33,28 @@ class MeanAveragePrecision:
 
         knn_tensor = pairwise_distances.topk(k=self._r + 1, dim=1, largest=False, sorted=True).indices
 
-        return float(torch.mean(torch.sum(self._map_at_r(knn_tensor), dim=1)))
+        return torch.mean(torch.sum(self._map_at_r(knn_tensor, labels), dim=1))
 
-    def _get_embedding(self, model, use_batched_data):
-        if use_batched_data:
-            embedded_sequences = torch.tensor([])
-            labels = []
-            for sequence_batch, label_batch in tqdm(iter(self._data.test_dataloader())):
-                embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch).detach()])
-                labels += label_batch
-            return embedded_sequences, labels
-        else:
-            sequences, labels = self._data.val_data
-            return model(sequences), labels
-
-    def _map_at_r(self, knn_tensor):
+    def _map_at_r(self, knn_tensor, labels):
         match_matrix = torch.tensor([])
 
         for key, knn in enumerate(knn_tensor):
-            match_vector = self._create_match_vector(key, knn)
+            match_vector = self._create_match_vector(key, knn, labels)
             match_matrix = torch.cat([match_matrix, match_vector], dim=0)
 
         weight_matrix = torch.triu(torch.stack([1 / r * torch.ones(self._r) for r in reversed(range(1, self._r + 1))]))
 
         return torch.matmul(match_matrix, weight_matrix) * match_matrix / self._r
 
-    def _create_match_vector(self, key, knn):
+    def _create_match_vector(self, key, knn, labels):
         match = []
         for idx in reversed(knn):
             idx = int(idx)
             if idx != key:
-                match.append(self._labels[idx] == self._labels[key])
+                match.append(self._compare(idx, key, labels))
         match_vector = torch.tensor([match[:self._r]])
         return match_vector
 
-    def _compare(self, i, j):
-        return self._labels[i] == self._labels[j]
+    @staticmethod
+    def _compare(i, j, labels):
+        return labels[i] == labels[j]

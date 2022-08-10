@@ -42,10 +42,9 @@ def run(save_path: str,
         model_type: str,
         model_params: dict,
         optimizer_params: dict,
+        test_params: dict,
         trainer_params: dict,
         early_stopping_params: dict,
-        evaluation_method: str,
-        evaluation_params: dict,
         seed: int,
         debug: bool):
     set_seed(seed)
@@ -53,16 +52,13 @@ def run(save_path: str,
     data = setup_data(data_params, data_sets, debug, seed)
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
-    model = get_model(loss, model_type, data.dimension, model_params, optimizer_params)
+    model = get_model(loss, model_type, data.dimension, model_params, optimizer_params, test_params)
     trainer = get_trainer(save_path, trainer_params, early_stopping_params)
 
     trainer.fit(model, datamodule=data)
+    result = trainer.test(datamodule=data)
 
-    if evaluation_method == 'roc_auc':
-        return pairwise_distance_evaluation(model, dist_type, data.val_data)['score']
-    elif evaluation_method == 'map_at_r':
-        map_at_r = MeanAveragePrecision(dist_type=dist_type, data=data, **evaluation_params)
-        return map_at_r(model, use_batched_data=True)
+    return result[0]['test_result']
 
 
 def get_trainer(save_path: str, trainer_params: dict, early_stopping_params: dict):
@@ -83,22 +79,32 @@ def setup_data(data_params: dict, data_sets: list[dict], debug: bool, seed: int)
     return data
 
 
-def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: dict):
+def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: dict, test_params: dict):
     if model_type == 'mlp':
-        model = Mlp(loss=loss, input_dimension=input_dimension, optimizer_params=optimizer_params, **model_params)
+        model = Mlp(loss=loss,
+                    input_dimension=input_dimension,
+                    optimizer_params=optimizer_params,
+                    test_params=test_params,
+                    **model_params)
     elif model_type == 'cnn':
         model = Cnn(input_size=input_dimension[0],
                     number_labels=input_dimension[1],
                     optimizer_params=optimizer_params,
+                    test_params=test_params,
                     loss=loss,
                     **model_params)
     elif model_type == 'lstm':
-        model = Lstm(loss=loss, number_labels=input_dimension[1], optimizer_params=optimizer_params, **model_params)
+        model = Lstm(loss=loss,
+                     number_labels=input_dimension[1],
+                     optimizer_params=optimizer_params,
+                     test_params=test_params,
+                     **model_params)
     elif model_type == 'transformer':
         model = TransformerEncoder(loss=loss,
                                    input_size=input_dimension[0],
                                    number_labels=input_dimension[1],
                                    optimizer_params=optimizer_params,
+                                   test_params=test_params,
                                    **model_params)
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))

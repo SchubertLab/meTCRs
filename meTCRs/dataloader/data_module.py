@@ -9,7 +9,7 @@ from meTCRs.dataloader.IEDB_processor import prepare_iedb
 from meTCRs.dataloader.McPAS_processor import prepare_mcpas
 from meTCRs.dataloader.VDJdb_processor import prepare_vdjdb
 from meTCRs.dataloader.dataset import TCREpitopeDataset, TestDataset
-from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION, BLOSUM62
+from meTCRs.dataloader.utils.amino_acids import AMINO_ACID_ENUMERATION, BLOSUM62, MAX_CDR_SEQUENCE_LENGTH
 
 DATA_SEPARATOR = '\t'
 CDR_SEQUENCE_KEY = 'CDR3b'
@@ -41,7 +41,7 @@ class DataModule(LightningDataModule):
         train_set = self._remove_small_class_data(raw_train_set, min_class_size=2)
         val_set = self._remove_small_class_data(raw_val_set, min_class_size=2)
 
-        sequence_size = self._get_sequence_size(data)
+        sequence_size = MAX_CDR_SEQUENCE_LENGTH
 
         processed_cdr_train_sequences = self._process_cdr_sequences(train_set, sequence_size)
         processed_cdr_val_sequences = self._process_cdr_sequences(val_set, sequence_size)

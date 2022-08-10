@@ -1,12 +1,10 @@
 import math
 
 import torch
-from torch import nn
 import torch.nn.functional as F
-from pytorch_lightning import LightningModule
-from torch.optim import Adam
+from torch import nn
 
-from meTCRs.dataloader.utils.pair_maker import pair_maker
+from meTCRs.models.embeddings.embedding import Embedding
 
 
 class PositionalEncoding(nn.Module):
@@ -31,7 +29,7 @@ class PositionalEncoding(nn.Module):
         return x + self.positional_encoding[:, :x.size(1)]
 
 
-class TransformerEncoder(LightningModule):
+class TransformerEncoder(Embedding):
     def __init__(self,
                  input_size: int,
                  output_size: int,
@@ -40,16 +38,9 @@ class TransformerEncoder(LightningModule):
                  number_heads: int,
                  forward_expansion: int,
                  number_layers: int,
-                 loss,
-                 optimizer_params: dict):
-        super(TransformerEncoder, self).__init__()
-
-        self.save_hyperparameters()
-
-        if optimizer_params is None:
-            self._optimizer_params = {}
-        else:
-            self._optimizer_params = optimizer_params
+                 *args,
+                 **kwargs):
+        super(TransformerEncoder, self).__init__(*args, **kwargs)
 
         self._embedding = nn.Parameter(torch.randn((number_labels, embedding_size)))
 
@@ -64,8 +55,6 @@ class TransformerEncoder(LightningModule):
 
         self._reduction = nn.Linear(input_size * embedding_size, output_size)
 
-        self._loss = loss
-
     def forward(self, x):
         x = F.normalize(x.type(torch.float32), dim=-1)
         x = torch.matmul(x.type(torch.float32), self._embedding)
@@ -73,25 +62,3 @@ class TransformerEncoder(LightningModule):
         x = self._transformer_encoder(x)
         x = x.flatten(1)
         return self._reduction(x)
-
-    def configure_optimizers(self):
-        return Adam(self.parameters(), **self._optimizer_params)
-
-    def _perform_step(self, batch):
-        if self._loss is None:
-            raise ValueError("`_perform_step` requires a loss function but loss is None")
-
-        input_sequence, labels = batch
-        embeddings = self(input_sequence.type(torch.float32))
-        anchor1, positive, anchor2, negative = pair_maker(labels, embeddings)
-
-        return self._loss(anchor1, positive, anchor2, negative)
-
-    def training_step(self, batch, batch_index):
-        loss = self._perform_step(batch)
-        self.log('train_loss', loss)
-        return loss
-
-    def validation_step(self, batch, batch_index):
-        loss = self._perform_step(batch)
-        self.log('val_loss', loss)

@@ -101,8 +101,7 @@ def get_run_params_from_config(config_dict, trial):
     run_params['loss_type'] = fixed_params['loss_type']
     run_params['model_type'] = fixed_params['model_type']
     run_params['early_stopping_params'] = fixed_params['early_stopping_params']
-    run_params['evaluation_method'] = fixed_params['evaluation_method']
-    run_params['evaluation_params'] = fixed_params['evaluation_params'] if 'evaluation_params' in fixed_params else {}
+    run_params['test_params'] = fixed_params['test_params']
     run_params['seed'] = fixed_params['seed']
 
     for params_class in ['data_params', 'loss_params', 'model_params', 'optimizer_params', 'trainer_params']:
