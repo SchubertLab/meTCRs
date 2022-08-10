@@ -27,10 +27,13 @@ def trim_cdr(data):
     return data
 
 
-def prepare_iedb(path):
+def prepare_iedb(path, extended: bool = False):
     data = pd.read_csv(path)
     data = remove_nans(data)
     data = trim_cdr(data)
     data = remove_invalid_epitopes(data)
 
-    return pd.DataFrame({'CDR3b': data[CDR_SEQUENCE_KEY], 'Epitope': data[EPITOPE_KEY]})
+    if extended:
+        return data
+    else:
+        return pd.DataFrame({'CDR3b': data[CDR_SEQUENCE_KEY], 'Epitope': data[EPITOPE_KEY]})

@@ -29,11 +29,14 @@ def trim_cdr(data):
     return data
 
 
-def prepare_mcpas(path):
+def prepare_mcpas(path, extended: bool = False):
     data = pd.read_csv(path, encoding='latin1')
     data = remove_nans(data)
     data = remove_invalid_proteins(data, CDR_SEQUENCE_KEY)
     data = remove_invalid_proteins(data, EPITOPE_KEY)
     data = trim_cdr(data)
 
-    return pd.DataFrame({'CDR3b': data[CDR_SEQUENCE_KEY], 'Epitope': data[EPITOPE_KEY]})
+    if extended:
+        return data
+    else:
+        return pd.DataFrame({'CDR3b': data[CDR_SEQUENCE_KEY], 'Epitope': data[EPITOPE_KEY]})
