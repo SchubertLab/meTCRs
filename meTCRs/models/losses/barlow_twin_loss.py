@@ -11,11 +11,11 @@ class BarlowTwinLoss(Module):
         super(BarlowTwinLoss, self).__init__()
 
         self._lmd = lmd
-        self._regulator = regulator
+        self._regulator = torch.tensor(regulator)
 
     def forward(self, anchor1: torch.Tensor, positive: torch.Tensor, anchor2: torch.Tensor, negative: torch.Tensor):
-        z1_norm = (anchor1 - torch.mean(anchor1, dim=0)) / (torch.std(anchor1, dim=0) + self._regulator)
-        z2_norm = (positive - torch.mean(positive, dim=0)) / (torch.std(positive, dim=0) + self._regulator)
+        z1_norm = (anchor1 - torch.mean(anchor1, dim=0)) / (torch.maximum(torch.std(anchor1, dim=0), self._regulator))
+        z2_norm = (positive - torch.mean(positive, dim=0)) / (torch.maximum(torch.std(positive, dim=0), self._regulator))
 
         cross_correlation = torch.matmul(z1_norm.T, z2_norm) / len(anchor1)
 
