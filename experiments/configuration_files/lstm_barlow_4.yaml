@@ -65,6 +65,6 @@ optimizable_params:
     batch_size:
       type: "power"
       sample_space:
-        min_exp: 7
-        max_exp: 10
+        min_exp: 6
+        max_exp: 8
         base: 2
