@@ -1,10 +1,10 @@
-import sys
-import os.path
 import argparse
-import yaml
+import os.path
+import sys
 
 import numpy as np
 import torch
+import yaml
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -14,8 +14,6 @@ from meTCRs.models.embeddings.transformer import TransformerEncoder
 sys.path.append(os.path.join(sys.path[0], '..'))
 
 from meTCRs.dataloader.data_module import DataModule
-from meTCRs.evaluation.mean_average_precision import MeanAveragePrecision
-from meTCRs.evaluation.pairwise_distance import pairwise_distance_evaluation
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.cnn import Cnn
 from meTCRs.models.embeddings.mlp import Mlp

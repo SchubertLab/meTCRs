@@ -4,19 +4,6 @@ from tqdm import tqdm
 from meTCRs.dataloader.data_module import DataModule
 
 
-def get_embedding(model, use_batched_data: bool, data_module: DataModule):
-    if use_batched_data:
-        embedded_sequences = torch.tensor([])
-        labels = []
-        for sequence_batch, label_batch in tqdm(iter(data_module.test_dataloader())):
-            embedded_sequences = torch.cat([embedded_sequences, model(sequence_batch).detach()])
-            labels += label_batch
-        return embedded_sequences, labels
-    else:
-        sequences, labels = data_module.val_data
-        return model(sequences), labels
-
-
 class MeanAveragePrecision:
     def __init__(self, dist_type: str, R: int):
         self._dist_type = dist_type

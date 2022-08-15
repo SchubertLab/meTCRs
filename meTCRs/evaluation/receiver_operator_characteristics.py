@@ -7,7 +7,7 @@ from meTCRs.utils import function_timer
 
 
 @function_timer
-def pairwise_distance_evaluation(embedding, dist_type, data, calculate_curve=False):
+def roc_auc(embedding, dist_type, data, calculate_curve=False):
     sequences, epitopes = data
     embedded_sequences = embedding(sequences)
 
