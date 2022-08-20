@@ -2,6 +2,7 @@ name: meTCRs
 channels:
   - pytorch
   - conda-forge
+  - bioconda
 dependencies:
   - python=3.9
   - pandas=1.4.*
@@ -11,3 +12,5 @@ dependencies:
   - matplotlib
   - optuna
   - umap-learn
+  - scirpy
+  - plotly

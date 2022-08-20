@@ -4,7 +4,7 @@ from meTCRs.evaluation.utils import default_compare
 
 
 class BaseMetric:
-    def __init__(self, dist_type: str, compare=default_compare):
+    def __init__(self, dist_type: str = 'l2', compare=default_compare):
         self._dist_type = dist_type
         self._compare = compare
 

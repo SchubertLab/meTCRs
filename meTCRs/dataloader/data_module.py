@@ -17,11 +17,18 @@ EPITOPE_KEY = 'Epitope'
 
 
 class DataModule(LightningDataModule):
-    def __init__(self, data_sets: list[dict], batch_size: int, encoding: str, class_sampling_method: str, sample_with_replacement: bool):
+    def __init__(self,
+                 data_sets: list[dict],
+                 batch_size: int,
+                 encoding: str,
+                 class_sampling_method: str,
+                 sample_with_replacement: bool,
+                 test_sets: Optional[list[dict]] = None):
         super().__init__()
         self._data_sets = data_sets
+        self._test_sets = test_sets
         self._batch_size = batch_size
-        self._classes_per_batch = batch_size // 2
+        self._classes_per_batch = max(batch_size // 2, 1)
         self._encoding = encoding
         self._train_set = None
         self._val_set = None
@@ -30,8 +37,15 @@ class DataModule(LightningDataModule):
         self._class_sampling_method = class_sampling_method
         self._sample_with_replacement = sample_with_replacement
 
-    def setup(self, stage: Optional[str] = None, debug=False, seed=1) -> None:
-        data = self._concatenate_datasets()
+    def setup(self, stage: Optional[str] = None, debug=False, seed=1, test_top_k=None) -> None:
+        data = self._concatenate_datasets(self._data_sets)
+        if self._test_sets:
+            test_set = self._concatenate_datasets(self._test_sets)
+            test_set = self._remove_train_data(test_data=test_set, train_data=data)
+            if test_top_k:
+                test_set = self._get_top_k_epitopes(test_set, test_top_k)
+        else:
+            test_set = None
 
         if debug:
             data = data.sample(frac=0.01, random_state=seed)
@@ -64,7 +78,11 @@ class DataModule(LightningDataModule):
                                           class_sampling_method=self._class_sampling_method,
                                           use_replacement=self._sample_with_replacement)
 
-        self._test_set = TestDataset(tcr_data=processed_cdr_val_sequences, epitope_data=val_set[EPITOPE_KEY])
+        if test_set is not None:
+            processed_cdr_test_sequences = self._process_cdr_sequences(test_set, sequence_size)
+            self._test_set = TestDataset(tcr_data=processed_cdr_test_sequences, epitope_data=test_set[EPITOPE_KEY])
+        else:
+            self._test_set = TestDataset(tcr_data=processed_cdr_val_sequences, epitope_data=val_set[EPITOPE_KEY])
 
     def _process_cdr_sequences(self, data, sequence_size: int):
         padded = self._pad(data[CDR_SEQUENCE_KEY], sequence_size)
@@ -129,10 +147,10 @@ class DataModule(LightningDataModule):
 
         return raw_data[class_sizes >= min_class_size]
 
-    def _concatenate_datasets(self):
+    def _concatenate_datasets(self, data_sets: list[dict]):
         data_frames = []
 
-        for data_set in self._data_sets:
+        for data_set in data_sets:
             if data_set['source'] == 'IEDB':
                 data_frames.append(prepare_iedb(data_set['file']))
             elif data_set['source'] == 'VDJdb':
@@ -147,3 +165,13 @@ class DataModule(LightningDataModule):
 
         return data
 
+    @staticmethod
+    def _remove_train_data(test_data: pd.DataFrame, train_data: pd.DataFrame):
+        duplicates = pd.merge(test_data, train_data, on=[CDR_SEQUENCE_KEY, EPITOPE_KEY], how='inner')
+        concatenated = pd.concat([test_data, duplicates])
+        return concatenated[~concatenated.duplicated(keep=False)]
+
+    @staticmethod
+    def _get_top_k_epitopes(data: pd.DataFrame, k: int):
+        top_k_counts = data[EPITOPE_KEY].value_counts()[:k]
+        return data[data[EPITOPE_KEY].isin(top_k_counts.index)]

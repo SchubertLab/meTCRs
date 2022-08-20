@@ -11,7 +11,7 @@ def remove_nans(data):
 
 
 def remove_invalid_proteins(data, key):
-    mask = data[key].apply(lambda protein: any(c not in AMINO_ACIDS for c in protein))
+    mask = data[key].apply(lambda protein: any(c not in AMINO_ACIDS[:20] for c in protein))
     return data[~mask]
 
 
@@ -19,9 +19,9 @@ def trim_cdr(data):
     def trim(x: str):
         trimmed = x
         if trimmed.startswith('C'):
-            trimmed = x[1:]
+            trimmed = trimmed[1:]
         if trimmed.endswith('F'):
-            trimmed = x[:-1]
+            trimmed = trimmed[:-1]
         return trimmed
 
     data[CDR_SEQUENCE_KEY] = data[CDR_SEQUENCE_KEY].apply(trim)

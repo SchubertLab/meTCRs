@@ -1,7 +1,4 @@
 import torch
-from tqdm import tqdm
-
-from meTCRs.dataloader.data_module import DataModule
 
 
 class MeanAveragePrecision:
