@@ -1,6 +1,7 @@
 import argparse
 import os.path
 import sys
+from typing import Optional
 
 import numpy as np
 import torch
@@ -9,6 +10,7 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
+from meTCRs.models.embeddings.barlow_twins import BarlowTwins
 from meTCRs.models.embeddings.transformer import TransformerEncoder
 
 sys.path.append(os.path.join(sys.path[0], '..'))
@@ -39,6 +41,8 @@ def run(save_path: str,
         loss_params: dict,
         model_type: str,
         model_params: dict,
+        architecture_type: str,
+        architecture_params: dict,
         optimizer_params: dict,
         test_params: dict,
         trainer_params: dict,
@@ -50,10 +54,17 @@ def run(save_path: str,
     data = setup_data(data_params, data_sets, debug, seed)
     distance = get_distance(dist_type)
     loss = get_loss(distance, loss_params, loss_type)
-    model = get_model(loss, model_type, data.dimension, model_params, optimizer_params, test_params)
+    architecture = get_architecture(architecture_type,
+                                    loss,
+                                    model_type,
+                                    data.dimension,
+                                    model_params,
+                                    optimizer_params,
+                                    test_params,
+                                    architecture_params)
     trainer = get_trainer(save_path, trainer_params, early_stopping_params)
 
-    trainer.fit(model, datamodule=data)
+    trainer.fit(architecture, datamodule=data)
     result = trainer.test(datamodule=data)
 
     return result[0]['test_result']
@@ -77,7 +88,7 @@ def setup_data(data_params: dict, data_sets: list[dict], debug: bool, seed: int)
     return data
 
 
-def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: dict, test_params: dict):
+def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: Optional[dict], test_params: Optional[dict]):
     if model_type == 'mlp':
         model = Mlp(loss=loss,
                     input_dimension=input_dimension,
@@ -107,6 +118,27 @@ def get_model(loss, model_type: str, input_dimension: torch.Size, model_params: 
     else:
         raise NotImplementedError("model of type {} is not implemented".format(model_type))
     return model
+
+
+def get_architecture(architecture_type: str, loss, model_type: str, input_dimension: torch.Size, model_params: dict, optimizer_params: dict, test_params: dict, architecture_params: dict):
+    if architecture_type == 'vanilla':
+        architecture = get_model(loss, model_type, input_dimension, model_params, optimizer_params, test_params)
+    elif architecture_type == 'barlow':
+        encoder = get_model(loss=None,
+                            model_type=model_type,
+                            input_dimension=input_dimension,
+                            model_params=model_params,
+                            optimizer_params=None,
+                            test_params=None)
+        architecture = BarlowTwins(encoder=encoder,
+                                   metric_loss=loss,
+                                   optimizer_params=optimizer_params,
+                                   test_params=test_params,
+                                   **architecture_params)
+    else:
+        raise NotImplementedError("architecture of type {} is not implemented".format(architecture_type))
+
+    return architecture
 
 
 def get_loss(distance, loss_params: dict, loss_type: str):

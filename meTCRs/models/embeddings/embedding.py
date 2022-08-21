@@ -1,3 +1,5 @@
+from typing import Optional
+
 import torch
 from pytorch_lightning import LightningModule
 from torch.optim import Adam
@@ -7,7 +9,7 @@ from meTCRs.evaluation.mean_average_precision import MeanAveragePrecision
 
 
 class Embedding(LightningModule):
-    def __init__(self, loss, optimizer_params: dict, test_params: dict):
+    def __init__(self, loss, optimizer_params: Optional[dict], test_params: Optional[dict]):
         super(Embedding, self).__init__()
 
         self.save_hyperparameters()
@@ -18,10 +20,11 @@ class Embedding(LightningModule):
             self._optimizer_params = optimizer_params
 
         if test_params is None:
-            test_params = {}
+            self._test = None
+        else:
+            self._test = MeanAveragePrecision(**test_params)
 
         self._loss = loss
-        self._test = MeanAveragePrecision(**test_params)
 
     def forward(self, *args, **kwargs) -> any:
         raise NotImplementedError
@@ -39,7 +42,7 @@ class Embedding(LightningModule):
 
         return self._loss(anchor1, positive, anchor2, negative)
 
-    def training_step(self, batch, batch_index):
+    def training_step(self, batch, batch_index, *args, **kwargs):
         loss = self._perform_step(batch)
         self.log('train_loss', loss)
         return loss
@@ -53,9 +56,16 @@ class Embedding(LightningModule):
         return {'embeddings': self(input_sequence).detach(), 'labels': labels}
 
     def test_epoch_end(self, outputs):
+        if self._test is None:
+            raise ValueError("`test_epoch_end` requires a test function but test is None")
+
         embedded_sequences = torch.cat([out['embeddings'] for out in outputs])
         labels = [label for out in outputs for label in out['labels']]
 
         test_result = self._test(embedded_sequences, labels)
         self.log('test_result', test_result)
         return test_result
+
+    @property
+    def output_size(self):
+        raise NotImplementedError

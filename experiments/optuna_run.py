@@ -100,11 +100,20 @@ def get_run_params_from_config(config_dict, trial):
     run_params['dist_type'] = fixed_params['dist_type']
     run_params['loss_type'] = fixed_params['loss_type']
     run_params['model_type'] = fixed_params['model_type']
+    if 'architecture_type' in fixed_params:
+        run_params['architecture_type'] = fixed_params['architecture_type']
+    else:
+        run_params['architecture_type'] = 'vanilla'
     run_params['early_stopping_params'] = fixed_params['early_stopping_params']
     run_params['test_params'] = fixed_params['test_params']
     run_params['seed'] = fixed_params['seed']
 
-    for params_class in ['data_params', 'loss_params', 'model_params', 'optimizer_params', 'trainer_params']:
+    for params_class in ['data_params',
+                         'loss_params',
+                         'model_params',
+                         'optimizer_params',
+                         'trainer_params',
+                         'architecture_params']:
         run_params[params_class] = fixed_params[params_class].copy() if params_class in fixed_params else {}
         if params_class in optimizable_params:
             run_params[params_class].update(suggest_params(trial, optimizable_params[params_class]))

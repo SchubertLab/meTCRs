@@ -21,6 +21,8 @@ class Mlp(Embedding):
 
         self._model = self._setup_model(number_inputs, number_outputs, number_hidden)
 
+        self._output_size = number_outputs
+
     def forward(self, x):
         x = F.normalize(x.type(torch.float32), dim=-1)
         x = x.flatten(1)
@@ -34,5 +36,9 @@ class Mlp(Embedding):
         layers += [nn.Linear(number_hidden[-1], number_outputs)]
 
         return nn.Sequential(*layers)
+
+    @property
+    def output_size(self):
+        return self._output_size
 
 

@@ -55,6 +55,8 @@ class TransformerEncoder(Embedding):
 
         self._reduction = nn.Linear(input_size * embedding_size, output_size)
 
+        self._output_size = output_size
+
     def forward(self, x):
         x = F.normalize(x.type(torch.float32), dim=-1)
         x = torch.matmul(x.type(torch.float32), self._embedding)
@@ -62,3 +64,7 @@ class TransformerEncoder(Embedding):
         x = self._transformer_encoder(x)
         x = x.flatten(1)
         return self._reduction(x)
+
+    @property
+    def output_size(self):
+        return self._output_size

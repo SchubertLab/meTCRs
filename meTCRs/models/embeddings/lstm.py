@@ -17,13 +17,17 @@ class Lstm(Embedding):
         super(Lstm, self).__init__(*args, **kwargs)
 
         if output_size is None:
-            output_size = 0
+            self._output_size = hidden_size
+            proj_size = 0
+        else:
+            self._output_size = output_size
+            proj_size = output_size
 
         self._embedding = nn.Parameter(torch.randn((number_labels, embedding_size)))
         self._lstm = nn.LSTM(input_size=embedding_size,
                              hidden_size=hidden_size,
                              num_layers=number_layers,
-                             proj_size=output_size,
+                             proj_size=proj_size,
                              batch_first=True)
 
     def forward(self, x):
@@ -31,3 +35,7 @@ class Lstm(Embedding):
         x = torch.matmul(x, self._embedding)
         _, (_, c_n) = self._lstm(x)
         return c_n[-1]
+
+    @property
+    def output_size(self):
+        return self._output_size

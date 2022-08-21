@@ -26,6 +26,8 @@ class Cnn(Embedding):
         self._cnn_blocks = self._build_cnn_blocks(embedding_size, kernel_sizes, number_features, strides)
         self._output_layer = nn.Linear(number_features[-1] * self._output_channels, output_size)
 
+        self._output_size = output_size
+
     def _build_cnn_blocks(self, embedding_size, kernel_sizes, number_features, strides):
         cnn_blocks = []
         input_channels = [embedding_size] + number_features[:-1]
@@ -49,3 +51,7 @@ class Cnn(Embedding):
         x = self._cnn_blocks(x)
         x = x.flatten(1)
         return self._output_layer(x)
+
+    @property
+    def output_size(self):
+        return self._output_size
