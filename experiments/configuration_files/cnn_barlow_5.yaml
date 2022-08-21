@@ -1,0 +1,117 @@
+# Tested with d390a6b1b0f910547d6f6dda344269e1275fc7ac
+name: "cnn_barlow_5"
+fixed_params:
+  data_sets:
+    - file: "VDJdb-2022-02-25 12_58_09.77.tsv"
+      source: "VDJdb"
+    - file: "IEDB-2022-03-06.csv"
+      source: "IEDB"
+  dist_type: "l2"
+  data_params:
+    encoding: "one_hot"
+    class_sampling_method: "linear"
+    sample_with_replacement: true
+  loss_type: "contrastive"
+  loss_params:
+    reduction: "mean"
+  trainer_params:
+    accelerator: "gpu"
+    devices: 1
+    strategy: "ddp"
+    check_val_every_n_epoch: 3
+  test_params:
+    R: 10
+    dist_type: "l2"
+  early_stopping_params:
+    patience: 5
+  model_type: "cnn"
+  architecture_type: "barlow"
+  architecture_params:
+    barlow_regulator: 1.e-12
+  seed: 42
+optimizable_params:
+  model_params:
+    output_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 6
+        base: 2
+    embedding_size:
+      type: "power"
+      sample_space:
+        min_exp: 5
+        max_exp: 9
+        base: 2
+    number_features:
+      type: "list"
+      sample_space:
+        element_type: "power"
+        sample_space:
+          min_exp: 5
+          max_exp: 10
+          base: 2
+        max_size: 3
+        ignore_if_zero: false
+    kernel_sizes:
+      type: "list"
+      sample_space:
+        element_type: "int"
+        sample_space:
+          low: 3
+          high: 7
+        max_size: 3
+        ignore_if_zero: false
+    strides:
+      type: "list"
+      sample_space:
+        element_type: "int"
+        sample_space:
+          low: 1
+          high: 3
+        max_size: 3
+        ignore_if_zero: false
+  optimizer_params:
+    lr:
+      type: "float"
+      sample_space:
+        low: 1.e-6
+        high: 1.e-3
+        log: true
+  architecture_params:
+    projector_hidden_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 8
+        base: 2
+    projector_output_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 8
+        base: 2
+    evaluation_layer_hidden_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 7
+        base: 2
+    evaluation_layer_output_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 7
+        base: 2
+    barlow_lmd:
+      type: "float"
+      sample_space:
+        low: 0.01
+        high: 1.
+  data_params:
+    batch_size:
+      type: "power"
+      sample_space:
+        min_exp: 2
+        max_exp: 9
+        base: 2
