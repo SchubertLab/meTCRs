@@ -10,11 +10,10 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 
-from meTCRs.models.embeddings.barlow_twins import BarlowTwins
-from meTCRs.models.embeddings.transformer import TransformerEncoder
-
 sys.path.append(os.path.join(sys.path[0], '..'))
 
+from meTCRs.models.embeddings.barlow_twins import BarlowTwins
+from meTCRs.models.embeddings.transformer import TransformerEncoder
 from meTCRs.dataloader.data_module import DataModule
 from meTCRs.models.distances.euclidean import Euclidean
 from meTCRs.models.embeddings.cnn import Cnn

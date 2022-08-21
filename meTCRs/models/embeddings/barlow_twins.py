@@ -40,7 +40,7 @@ class BarlowTwins(LightningModule):
                  test_params):
         super(BarlowTwins, self).__init__()
 
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=['encoder'])
 
         self._encoder = encoder
         self._projection_head = FullyConnected(encoder.output_size, projector_hidden_size, projector_output_size)
@@ -97,7 +97,7 @@ class BarlowTwins(LightningModule):
         embeddings = self._projection_head(self._encoder(input_sequences))
         z1, z2, _, _ = pair_maker(labels, embeddings)
 
-        return self._barlow_loss(z1, z2)
+        return self._barlow_loss(z1, z2, _, _)
 
     def _perform_evaluation_layer_step(self, batch):
         input_sequences, labels = batch

@@ -15,11 +15,18 @@ class ContrastiveLoss(Module):
         positive_loss = self.distance(anchor1, positive)
         negative_loss = self.relu(self.alpha - self.distance(anchor2, negative))
 
-        concatenated = torch.cat([negative_loss, positive_loss])
+        if len(anchor1) == 0:
+            return self._reduce(negative_loss)
+        if len(anchor2) == 0:
+            return self._reduce(positive_loss)
 
+        concatenated_loss = torch.cat([negative_loss, positive_loss])
+        return self._reduce(concatenated_loss)
+
+    def _reduce(self, losses):
         if self.reduction == 'mean':
-            return torch.mean(concatenated)
+            return torch.mean(losses)
         elif self.reduction == 'sum':
-            return torch.sum(concatenated)
+            return torch.sum(losses)
         else:
-            return concatenated
+            return losses
