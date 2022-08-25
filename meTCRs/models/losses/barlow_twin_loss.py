@@ -26,5 +26,4 @@ class BarlowTwinLoss(Module):
 
     @staticmethod
     def _get_off_diagonal_term(cross_correlation: torch.Tensor):
-        clone = cross_correlation.clone()
-        return torch.sum(clone**2)
+        return torch.sum(cross_correlation**2) - torch.sum(torch.diagonal(cross_correlation)**2)
